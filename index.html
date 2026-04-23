@@ -4,166 +4,199 @@
 <title>Mera AI</title>
 
 <style>
-body { margin:0; font-family:Segoe UI; }
-.dark { background:#121212; color:white; }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f7f7f8;
+}
 
+.dark {
+    background: #343541;
+    color: white;
+}
+
+/* HEADER */
 .header {
- display:flex; justify-content:space-between;
- padding:15px; background:white;
-}
-.dark .header { background:#1e1e1e; }
-
-#loginPage {
- display:flex; height:100vh;
- justify-content:center; align-items:center;
+    padding: 15px;
+    font-size: 20px;
+    text-align: center;
+    font-weight: bold;
 }
 
-.login-box { background:white; padding:30px; border-radius:10px; }
-.dark .login-box { background:#1e1e1e; }
-
-#app { display:none; }
-
-.container { display:flex; }
-.sidebar {
- width:200px; background:#202123; color:white;
- padding:20px; height:100vh;
-}
-.main { flex:1; padding:20px; }
-
-.results {
- display:grid;
- grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
- gap:15px;
+/* CHAT AREA */
+.chat-container {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
 }
 
-.card { background:white; border-radius:10px; overflow:hidden; }
-.dark .card { background:#1e1e1e; }
+/* MESSAGE */
+.message {
+    margin-bottom: 20px;
+}
+
+.user-msg {
+    text-align: right;
+}
+
+.ai-msg {
+    text-align: left;
+}
+
+/* INPUT */
+.input-box {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+}
+
+.dark .input-box {
+    background: #444654;
+}
+
+.input-box input {
+    width: 60%;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+.input-box button {
+    margin-left: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    border: none;
+    background: #10a37f;
+    color: white;
+}
+
+/* CARDS */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.dark .card {
+    background: #444654;
+}
 
 .card img {
- width:100%; height:150px; object-fit:cover;
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
 }
 
-.price { color:green; font-weight:bold; }
-.old { text-decoration:line-through; color:gray; }
+.card-content {
+    padding: 10px;
+}
 
-button {
- padding:8px; margin:5px;
- background:#ff5a5f; color:white; border:none;
+.price {
+    color: green;
+    font-weight: bold;
+}
+
+.old {
+    text-decoration: line-through;
+    color: gray;
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
-<div id="loginPage">
- <div class="login-box">
-  <h2>Mera AI Login</h2>
-  <input id="username" placeholder="Enter name"><br><br>
-  <button onclick="login()">Login</button>
- </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-
 <div class="header">
- <div>Mera AI 🍔</div>
- <div id="userName"></div>
+Mera AI 🍔
+<button onclick="toggleDark()">🌙</button>
 </div>
 
-<div class="container">
+<div class="chat-container" id="chat"></div>
 
-<div class="sidebar">
- <button onclick="toggleDark()">🌙 Dark</button>
-</div>
-
-<div class="main">
-
-<input id="query" placeholder="Search food">
-<button onclick="search()">Search</button>
-
-<div id="results" class="results"></div>
-
-</div>
-</div>
+<div class="input-box">
+<input id="query" placeholder="Ask for food... (biryani, pizza, waffle)">
+<button onclick="search()">Send</button>
 </div>
 
 <script>
 
-function login(){
- let name=document.getElementById("username").value;
- if(!name) return;
- localStorage.setItem("user",name);
- showApp();
+function toggleDark() {
+    document.body.classList.toggle("dark");
 }
 
-function showApp(){
- let user=localStorage.getItem("user");
- if(!user) return;
- document.getElementById("loginPage").style.display="none";
- document.getElementById("app").style.display="block";
- document.getElementById("userName").innerText=user;
+/* IMAGE FIX */
+function getImage(q) {
+    return "https://source.unsplash.com/400x300/?"+q+",food";
 }
 
-function toggleDark(){
- document.body.classList.toggle("dark");
+/* SEARCH */
+async function search() {
+    let query = document.getElementById("query").value;
+    if(!query) return;
+
+    let chat = document.getElementById("chat");
+
+    // USER MESSAGE
+    chat.innerHTML += `
+    <div class="message user-msg">
+        ${query}
+    </div>
+    `;
+
+    document.getElementById("query").value = "";
+
+    let res = await fetch("https://mera-ai.onrender.com/search?query=" + query);
+    let data = await res.json();
+
+    let cards = "";
+
+    data.results.forEach((r, i) => {
+
+        let img = getImage(query);
+
+        cards += `
+        <div class="card">
+            <img src="${img}" onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
+            <div class="card-content">
+                <h4>${r.restaurant}</h4>
+                <p>
+                    <span class="price">₹${r.final_price}</span>
+                    <span class="old">₹${r.original_price}</span>
+                </p>
+                <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
+                <p>${r.platform}</p>
+                ${i===0 ? "<b>⭐ Best Choice</b>" : ""}
+            </div>
+        </div>
+        `;
+    });
+
+    // AI RESPONSE
+    chat.innerHTML += `
+    <div class="message ai-msg">
+        <div>Here are the best options for "${query}" 👇</div>
+        <div class="cards">${cards}</div>
+    </div>
+    `;
+
+    window.scrollTo(0, document.body.scrollHeight);
 }
 
-function getImage(q){
- return "https://source.unsplash.com/400x300/?"+q+",food";
-}
-
-async function search(){
- let query=document.getElementById("query").value;
- let user=localStorage.getItem("user");
-
- let res=await fetch(
-  "https://mera-ai.onrender.com/search?query="+query+"&user="+user
- );
-
- let data=await res.json();
-
- let html="";
-
- data.results.forEach((r,i)=>{
-
- let img=getImage(query);
-
- html+=`
- <div class="card">
-  <img src="${img}">
-  <div style="padding:10px">
-   <h3>${r.restaurant}</h3>
-   <p><span class="price">₹${r.final_price}</span>
-   <span class="old">₹${r.original_price}</span></p>
-   <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
-   <p>${r.platform}</p>
-
-   <button onclick="teach('cheap')">💰 Cheap</button>
-   <button onclick="teach('fast')">⚡ Fast</button>
-   <button onclick="teach('discount')">🔥 Deal</button>
-
-   ${i===0 ? "<b>⭐ Best for you</b>" : ""}
-  </div>
- </div>
- `;
- });
-
- document.getElementById("results").innerHTML=html;
-}
-
-function teach(type){
- let user=localStorage.getItem("user");
- fetch(`https://mera-ai.onrender.com/feedback?user=${user}&type=${type}`);
-}
-
-document.addEventListener("keypress",e=>{
- if(e.key==="Enter") search();
+/* ENTER KEY */
+document.addEventListener("keypress", function(e){
+    if(e.key === "Enter") search();
 });
-
-showApp();
-
 </script>
 
 </body>
