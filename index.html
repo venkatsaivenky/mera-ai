@@ -1,166 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Mera AI</title>
-
-<style>
-body { margin:0; font-family: Arial; background:#f7f7f8; }
-.dark { background:#343541; color:white; }
-
-.header {
- display:flex; justify-content:space-between;
- padding:15px; background:white;
-}
-
-.dark .header { background:#444654; }
-
-.container { display:flex; }
-
-.sidebar {
- width:200px; background:#202123;
- color:white; padding:15px;
- height:100vh; overflow:auto;
-}
-
-.main { flex:1; padding:20px; }
-
-.input-box {
- position:fixed; bottom:0;
- width:100%; padding:10px;
- background:white; display:flex;
-}
-
-.dark .input-box { background:#444654; }
-
-.input-box input {
- flex:1; padding:15px;
- border-radius:10px;
-}
-
-.input-box button {
- margin-left:10px; padding:15px;
- background:#10a37f; color:white;
- border:none;
-}
-
-.chat { margin-bottom:100px; }
-
-.cards {
- display:grid;
- grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
- gap:10px;
-}
-
-.card {
- background:white;
- border-radius:10px;
- overflow:hidden;
-}
-
-.dark .card { background:#444654; }
-
-.card img {
- width:100%; height:140px;
- object-fit:cover;
-}
-
-.price { color:green; }
-.old { text-decoration:line-through; color:gray; }
-</style>
-</head>
-
-<body>
-
-<div class="header">
- <div>Mera AI 🍔</div>
- <div id="userName"></div>
-</div>
-
-<div class="container">
-
-<div class="sidebar">
- <button onclick="toggleDark()">🌙 Dark</button>
- <h3>History</h3>
- <div id="history"></div>
-</div>
-
-<div class="main">
- <div id="chat" class="chat"></div>
-</div>
-
-</div>
-
-<div class="input-box">
- <input id="query" placeholder="Search food...">
- <button onclick="search()">Send</button>
-</div>
-
-<div id="suggestions"></div>
-
-<script>
-
-document.getElementById("userName").innerText =
- localStorage.getItem("user") || "Guest";
-
-/* DARK MODE */
-function toggleDark(){
- document.body.classList.toggle("dark");
-}
-
-/* HISTORY */
-function saveHistory(q){
- let h = JSON.parse(localStorage.getItem("history") || "[]");
- h.unshift(q);
- localStorage.setItem("history", JSON.stringify(h));
- loadHistory();
-}
-
-function loadHistory(){
- let h = JSON.parse(localStorage.getItem("history") || "[]");
- let html="";
- h.forEach(item=>{
-  html+=`<div onclick="quickSearch('${item}')">${item}</div>`;
- });
- document.getElementById("history").innerHTML=html;
-}
-
-function quickSearch(q){
- document.getElementById("query").value=q;
- search();
-}
-
-loadHistory();
-
-/* AUTOSUGGEST */
-document.getElementById("query").addEventListener("input", async function(){
- let q=this.value;
-
- let res=await fetch(`https://mera-ai.onrender.com/suggest?query=${q}`);
- let data=await res.json();
-
- let html="";
- data.suggestions.forEach(s=>{
-  html+=`<div onclick="selectSuggestion('${s}')">${s}</div>`;
- });
-
- document.getElementById("suggestions").innerHTML=html;
-});
-
-function selectSuggestion(s){
- document.getElementById("query").value=s;
- search();
-}
-
-/* IMAGE */
-function getImage(q){
- return "https://source.unsplash.com/400x300/?"+q+",food";
-}
-
-/* SEARCH */
 async function search(){
 
  let query=document.getElementById("query").value;
- let user=localStorage.getItem("user") || "guest";
+ let user=localStorage.getItem("user");
 
  saveHistory(query);
 
@@ -174,46 +15,26 @@ async function search(){
 
  data.results.forEach((r,i)=>{
 
- let img=getImage(query);
+ let img="https://source.unsplash.com/400x300/?"+query+",food";
 
  cards+=`
  <div class="card">
-  <img src="${img}" onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
-  <div style="padding:10px">
-   <h4>${r.restaurant}</h4>
-   <p><span class="price">₹${r.final_price}</span>
-   <span class="old">₹${r.original_price}</span></p>
-   <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
-   <p>${r.platform}</p>
-
-   <button onclick="teach('cheap')">💰</button>
-   <button onclick="teach('fast')">⚡</button>
-   <button onclick="teach('discount')">🔥</button>
-
-   ${i===0?"<b>⭐ Best for you</b>":""}
-  </div>
+  <img src="${img}" onerror="this.src='https://via.placeholder.com/400x300'">
+  <h4>${r.restaurant}</h4>
+  <p><span class="price">₹${r.final_price}</span>
+  <span class="old">₹${r.original_price}</span></p>
+  <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
+  <p>${r.platform}</p>
+  ${i===0?"<b>⭐ Best for you</b>":""}
  </div>
  `;
  });
 
  document.getElementById("chat").innerHTML += `
  <div><b>You:</b> ${query}</div>
+ <div style="margin:10px 0;padding:10px;background:#10a37f;color:white;border-radius:8px;">
+ 🤖 ${data.ai_message}
+ </div>
  <div class="cards">${cards}</div>
  `;
 }
-
-/* AI LEARNING */
-function teach(type){
- let user=localStorage.getItem("user") || "guest";
- fetch(`https://mera-ai.onrender.com/feedback?user=${user}&type=${type}`);
-}
-
-/* ENTER KEY */
-document.addEventListener("keypress",e=>{
- if(e.key==="Enter") search();
-});
-
-</script>
-
-</body>
-</html>
