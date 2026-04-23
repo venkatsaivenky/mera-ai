@@ -23,14 +23,28 @@ def home():
 def search(query: str):
     results = []
 
-    for i in range(5):
+    for i in range(10):
+        original_price = random.randint(150, 400)
+        discount = random.choice([20, 30, 40, 50])
+
+        final_price = round(original_price * (1 - discount/100), 2)
+
         results.append({
             "restaurant": f"Restaurant {i+1}",
-            "price": random.randint(150, 300),
+            "original_price": original_price,
+            "discount": discount,
+            "final_price": final_price,
+            "delivery_time": random.randint(20, 45),
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    return {"query": query, "results": results}
+    # 🔥 Sort by best deal
+    results = sorted(results, key=lambda x: (x["final_price"], x["delivery_time"]))
+
+    return {
+        "query": query,
+        "results": results[:5]
+    }
 
 # Render port fix
 port = int(os.environ.get("PORT", 10000))
