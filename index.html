@@ -5,99 +5,183 @@
 
 <style>
 body {
-    font-family: 'Segoe UI';
-    background: #f8f9fa;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+}
+
+/* Header */
+.header {
+    background: white;
+    padding: 20px;
     text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Search */
+.search-box {
+    text-align: center;
+    margin: 30px;
 }
 
 input {
-    width: 50%;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
+    width: 40%;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 16px;
 }
 
 button {
-    padding: 12px 20px;
+    padding: 14px 22px;
+    margin-left: 10px;
     background: #ff5a5f;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
 }
 
-.container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+button:hover {
+    background: #ff3b3f;
 }
 
+/* Grid */
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 20px 60px;
+}
+
+/* Card */
 .card {
     background: white;
-    width: 260px;
-    margin: 15px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    transition: 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* Image */
+.card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+
+/* Content */
+.card-content {
     padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    text-align: left;
 }
 
 .price {
-    color: green;
-    font-size: 18px;
+    color: #28a745;
+    font-size: 20px;
     font-weight: bold;
 }
 
 .old-price {
     text-decoration: line-through;
     color: gray;
+    margin-left: 8px;
 }
 
 .badge {
     background: #28a745;
     color: white;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 6px;
     font-size: 12px;
+    display: inline-block;
+    margin-top: 6px;
+}
+
+.meta {
+    margin-top: 6px;
+    color: #555;
+    font-size: 14px;
+}
+
+.loader {
+    text-align: center;
+    color: gray;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Mera AI 🍔</h2>
+<div class="header">Mera AI 🍔</div>
 
-<input id="query" placeholder="Search food..." />
-<button onclick="search()">Search</button>
+<div class="search-box">
+    <input id="query" placeholder="Search food (biryani, dosa...)" />
+    <button onclick="search()">Search</button>
+</div>
 
+<div id="loader" class="loader"></div>
 <div id="results" class="container"></div>
 
 <script>
 async function search() {
     let query = document.getElementById("query").value;
 
+    if (!query) return;
+
+    document.getElementById("loader").innerText = "Finding best deals...";
+
     let res = await fetch("https://mera-ai.onrender.com/search?query=" + encodeURIComponent(query));
     let data = await res.json();
 
+    document.getElementById("loader").innerText = "";
+
     let html = "";
 
-    data.results.forEach(r => {
+    data.results.forEach((r, index) => {
+
+        // 🔥 Dynamic food image
+        let imgUrl = "https://source.unsplash.com/400x300/?food," + query;
+
         html += `
         <div class="card">
-            <h3>${r.restaurant}</h3>
-            <p>
-                <span class="price">₹${r.final_price}</span>
-                <span class="old-price">₹${r.original_price}</span>
-            </p>
-            <p class="badge">${r.discount}% OFF</p>
-            <p>⏱ ${r.delivery_time} mins</p>
-            <p>${r.platform}</p>
+
+            <img src="${imgUrl}" alt="food">
+
+            <div class="card-content">
+                <h3>${r.restaurant}</h3>
+
+                <p>
+                    <span class="price">₹${r.final_price}</span>
+                    <span class="old-price">₹${r.original_price}</span>
+                </p>
+
+                <div class="badge">${r.discount}% OFF</div>
+
+                <div class="meta">⏱ ${r.delivery_time} mins</div>
+                <div class="meta">${r.platform}</div>
+
+                ${index === 0 ? '<div class="badge" style="background:#ff9800;">Best Deal ⭐</div>' : ''}
+            </div>
+
         </div>
         `;
     });
 
     document.getElementById("results").innerHTML = html;
 }
+
+/* ENTER KEY SUPPORT */
+document.getElementById("query").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        search();
+    }
+});
 </script>
 
 </body>
