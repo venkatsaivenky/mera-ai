@@ -7,13 +7,16 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
+    transition: 0.3s;
 }
 
+/* DARK MODE FULL */
 .dark {
     background: #121212;
     color: white;
 }
 
+/* HEADER */
 .header {
     display: flex;
     justify-content: space-between;
@@ -25,6 +28,34 @@ body {
     background: #1e1e1e;
 }
 
+.user {
+    font-weight: bold;
+}
+
+/* LOGIN */
+#loginPage {
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-box {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+}
+
+.dark .login-box {
+    background: #1e1e1e;
+}
+
+/* APP */
+#app {
+    display: none;
+}
+
+/* LAYOUT */
 .container {
     display: flex;
 }
@@ -42,9 +73,10 @@ body {
     padding: 20px;
 }
 
-.search-box input, .filters input {
+/* SEARCH */
+.search-box input {
     padding: 10px;
-    margin-right: 10px;
+    width: 250px;
 }
 
 button {
@@ -52,8 +84,16 @@ button {
     background: #ff5a5f;
     color: white;
     border: none;
+    cursor: pointer;
 }
 
+/* FILTERS */
+.filters input {
+    padding: 8px;
+    margin-right: 10px;
+}
+
+/* CARDS */
 .results {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -72,7 +112,7 @@ button {
 
 .card img {
     width: 100%;
-    height: 150px;
+    height: 160px;
     object-fit: cover;
 }
 
@@ -95,15 +135,32 @@ button {
     color: white;
     padding: 4px;
     border-radius: 4px;
+    font-size: 12px;
+}
+
+.best {
+    background: orange;
 }
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
+<div id="loginPage">
+    <div class="login-box">
+        <h2>Mera AI Login</h2>
+        <input id="username" placeholder="Enter your name"><br><br>
+        <button onclick="login()">Login</button>
+    </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
 <div class="header">
     <div>Mera AI 🍔</div>
-    <div id="userName"></div>
+    <div id="userName" class="user"></div>
 </div>
 
 <div class="container">
@@ -115,26 +172,55 @@ button {
 <div class="main">
 
 <div class="search-box">
-    <input id="query" placeholder="Search food">
+    <input id="query" placeholder="Search food (biryani, pizza, waffle)">
     <button onclick="search()">Search</button>
 </div>
 
-<!-- 🔥 FILTERS -->
+<br>
+
 <div class="filters">
     <input id="maxPrice" placeholder="Max Price">
     <input id="maxTime" placeholder="Max Time">
 </div>
 
+<br>
+
 <div id="results" class="results"></div>
 
+</div>
 </div>
 </div>
 
 <script>
 
-/* DARK MODE */
+/* LOGIN */
+function login() {
+    let name = document.getElementById("username").value;
+    if (!name) return;
+
+    localStorage.setItem("user", name);
+    showApp();
+}
+
+/* LOAD USER */
+function showApp() {
+    let user = localStorage.getItem("user");
+
+    if (!user) return;
+
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("userName").innerText = user;
+}
+
+/* DARK MODE FULL */
 function toggleDark() {
     document.body.classList.toggle("dark");
+}
+
+/* IMAGE FIX (RELIABLE) */
+function getFoodImage(query) {
+    return "https://source.unsplash.com/400x300/?" + query + ",food";
 }
 
 /* SEARCH */
@@ -156,11 +242,12 @@ async function search() {
 
     filtered.forEach((r, index) => {
 
-        let img = "https://loremflickr.com/400/300/" + query;
+        let img = getFoodImage(query);
 
         html += `
         <div class="card">
             <img src="${img}" onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
+
             <div class="card-content">
                 <h3>${r.restaurant}</h3>
 
@@ -173,7 +260,7 @@ async function search() {
                 <p>${r.delivery_time} mins</p>
                 <p>${r.platform}</p>
 
-                ${index === 0 ? '<div class="badge" style="background:orange;">Best Deal ⭐</div>' : ''}
+                ${index === 0 ? '<div class="badge best">Best Deal ⭐</div>' : ''}
             </div>
         </div>
         `;
@@ -186,6 +273,10 @@ async function search() {
 document.addEventListener("keypress", function(e) {
     if (e.key === "Enter") search();
 });
+
+/* AUTO LOGIN */
+showApp();
+
 </script>
 
 </body>
