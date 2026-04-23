@@ -145,13 +145,15 @@ async function search() {
 
     data.results.forEach((r, index) => {
 
-        // 🔥 Dynamic food image
-        let imgUrl = "https://source.unsplash.com/400x300/?food," + query;
+        // ✅ FIXED IMAGE SOURCE
+        let imgUrl = "https://loremflickr.com/400/300/" + query;
 
         html += `
         <div class="card">
 
-            <img src="${imgUrl}" alt="food">
+            <!-- ✅ IMAGE WITH FALLBACK -->
+            <img src="${imgUrl}" 
+                 onerror="this.src='https://via.placeholder.com/400x300?text=Food'" />
 
             <div class="card-content">
                 <h3>${r.restaurant}</h3>
@@ -176,7 +178,7 @@ async function search() {
     document.getElementById("results").innerHTML = html;
 }
 
-/* ENTER KEY SUPPORT */
+/* ✅ ENTER KEY SUPPORT */
 document.getElementById("query").addEventListener("keypress", function(e) {
     if (e.key === "Enter") {
         search();
