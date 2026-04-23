@@ -14,18 +14,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 🧠 USER MEMORY (AI)
+user_memory = {}
+
 @app.get("/")
 def home():
     return {"message": "Mera AI working ✅"}
 
 @app.get("/search")
-def search(query: str):
+def search(query: str, user: str = "guest"):
+
+    if user not in user_memory:
+        user_memory[user] = {
+            "low_price": 1,
+            "fast_delivery": 1,
+            "high_discount": 1
+        }
+
+    prefs = user_memory[user]
+
     results = []
 
     for i in range(10):
         original_price = random.randint(150, 400)
         discount = random.choice([20, 30, 40, 50])
-
         final_price = round(original_price * (1 - discount/100), 2)
 
         results.append({
@@ -37,20 +49,37 @@ def search(query: str):
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    # 🔥 SMART AI SCORING
+    # 🧠 AI SCORING
     def score(item):
         return (
-            item["final_price"] * 0.6 +
-            item["delivery_time"] * 0.3 -
-            item["discount"] * 0.1
+            item["final_price"] * prefs["low_price"] +
+            item["delivery_time"] * prefs["fast_delivery"] -
+            item["discount"] * prefs["high_discount"]
         )
 
     results = sorted(results, key=score)
 
-    return {
-        "query": query,
-        "results": results[:10]
-    }
+    return {"results": results}
+
+# 🧠 LEARNING API
+@app.get("/feedback")
+def feedback(user: str, type: str):
+
+    if user not in user_memory:
+        user_memory[user] = {
+            "low_price": 1,
+            "fast_delivery": 1,
+            "high_discount": 1
+        }
+
+    if type == "cheap":
+        user_memory[user]["low_price"] += 1
+    elif type == "fast":
+        user_memory[user]["fast_delivery"] += 1
+    elif type == "discount":
+        user_memory[user]["high_discount"] += 1
+
+    return {"message": "AI learned ✅"}
 
 port = int(os.environ.get("PORT", 10000))
 
