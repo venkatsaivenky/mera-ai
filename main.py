@@ -38,7 +38,6 @@ def search(query: str):
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    # 🔥 Sort by best deal
     results = sorted(results, key=lambda x: (x["final_price"], x["delivery_time"]))
 
     return {
@@ -46,7 +45,7 @@ def search(query: str):
         "results": results[:5]
     }
 
-# Render port fix
+# Render port config
 port = int(os.environ.get("PORT", 10000))
 
 if __name__ == "__main__":
