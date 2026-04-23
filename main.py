@@ -6,7 +6,6 @@ import os
 
 app = FastAPI()
 
-# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,14 +37,21 @@ def search(query: str):
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    results = sorted(results, key=lambda x: (x["final_price"], x["delivery_time"]))
+    # 🔥 SMART AI SCORING
+    def score(item):
+        return (
+            item["final_price"] * 0.6 +
+            item["delivery_time"] * 0.3 -
+            item["discount"] * 0.1
+        )
+
+    results = sorted(results, key=score)
 
     return {
         "query": query,
-        "results": results[:5]
+        "results": results[:10]
     }
 
-# Render port config
 port = int(os.environ.get("PORT", 10000))
 
 if __name__ == "__main__":
