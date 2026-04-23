@@ -62,7 +62,7 @@
 async function search() {
     let query = document.getElementById("query").value;
 
-    let res = await fetch("http://127.0.0.1:8000/search?query=" + encodeURIComponent(query));
+    let res = await fetch("https://mera-ai.onrender.com/search?query=" + encodeURIComponent(query));
     let data = await res.json();
 
     let html = "";
