@@ -7,6 +7,7 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
+    transition: 0.3s;
 }
 
 /* DARK MODE */
@@ -28,7 +29,6 @@ body {
     background: #1e1e1e;
 }
 
-/* USER NAME */
 .user {
     font-weight: bold;
 }
@@ -84,6 +84,8 @@ body {
 .search-box input {
     flex: 1;
     padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
 }
 
 .search-box button {
@@ -92,6 +94,7 @@ body {
     background: #ff5a5f;
     color: white;
     border: none;
+    border-radius: 8px;
 }
 
 /* CARDS */
@@ -105,10 +108,15 @@ body {
     background: white;
     border-radius: 10px;
     overflow: hidden;
+    transition: 0.2s;
 }
 
 .dark .card {
     background: #1e1e1e;
+}
+
+.card:hover {
+    transform: translateY(-5px);
 }
 
 .card img {
@@ -136,6 +144,16 @@ body {
     color: white;
     padding: 4px;
     border-radius: 4px;
+    font-size: 12px;
+}
+
+.best {
+    background: orange;
+}
+
+/* LOADER */
+.loader {
+    margin-bottom: 10px;
 }
 </style>
 </head>
@@ -156,7 +174,7 @@ body {
 
     <div class="header">
         <div>Mera AI 🍔</div>
-        <div class="user" id="userName"></div>
+        <div id="userName" class="user"></div>
     </div>
 
     <div class="container">
@@ -168,10 +186,11 @@ body {
         <div class="main">
 
             <div class="search-box">
-                <input id="query" placeholder="Search food...">
+                <input id="query" placeholder="Search food (biryani, pizza, waffle...)" />
                 <button onclick="search()">Search</button>
             </div>
 
+            <div id="loader" class="loader"></div>
             <div id="results" class="results"></div>
 
         </div>
@@ -180,10 +199,9 @@ body {
 
 <script>
 
-/* LOGIN (with storage) */
+/* LOGIN */
 function login() {
     let name = document.getElementById("username").value;
-
     if (!name) return;
 
     localStorage.setItem("user", name);
@@ -210,10 +228,20 @@ function toggleDark() {
 async function search() {
     let query = document.getElementById("query").value;
 
-    let res = await fetch("https://mera-ai.onrender.com/search?query=" + query);
+    if (!query) return;
+
+    document.getElementById("loader").innerText = "Finding best deals...";
+
+    let res = await fetch("https://mera-ai.onrender.com/search?query=" + encodeURIComponent(query));
     let data = await res.json();
 
+    document.getElementById("loader").innerText = "";
+
     let html = "";
+
+    if (!data.results || data.results.length === 0) {
+        html = "<p>No results found. Showing random deals...</p>";
+    }
 
     data.results.forEach((r, index) => {
 
@@ -222,6 +250,7 @@ async function search() {
         html += `
         <div class="card">
             <img src="${img}" onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
+
             <div class="card-content">
                 <h3>${r.restaurant}</h3>
 
@@ -231,10 +260,10 @@ async function search() {
                 </p>
 
                 <div class="badge">${r.discount}% OFF</div>
-                <p>${r.delivery_time} mins</p>
+                <p>⏱ ${r.delivery_time} mins</p>
                 <p>${r.platform}</p>
 
-                ${index === 0 ? '<div class="badge" style="background:orange;">Best Deal ⭐</div>' : ''}
+                ${index === 0 ? '<div class="badge best">Best Deal ⭐</div>' : ''}
             </div>
         </div>
         `;
