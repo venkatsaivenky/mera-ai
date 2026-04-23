@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import random
+import os
 
 app = FastAPI()
 
-# FIX CORS (important)
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,7 +21,6 @@ def home():
 
 @app.get("/search")
 def search(query: str):
-
     results = []
 
     for i in range(5):
@@ -32,5 +32,8 @@ def search(query: str):
 
     return {"query": query, "results": results}
 
+# Render port fix
+port = int(os.environ.get("PORT", 10000))
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=10000)
+    uvicorn.run(app, host="0.0.0.0", port=port)
