@@ -1,11 +1,20 @@
+# main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import random
 import os
-from openai import OpenAI
+
+# ✅ Safe OpenAI import (prevents crash)
+try:
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+except:
+    client = None
 
 app = FastAPI()
 
+# ✅ CORS (important for frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,11 +23,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔑 OPENAI CLIENT
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ✅ Dummy food generator
+def generate_results(query):
+    results = []
+    for i in range(10):
+        original_price = random.randint(150, 350)
+        discount = random.choice([10, 20, 30, 40, 50])
+        final_price = round(original_price * (1 - discount/100), 1)
 
-# 🧠 MEMORY
-user_memory = {}
+        results.append({
+            "restaurant": f"{query.title()} Spot {i+1}",
+            "original_price": original_price,
+            "final_price": final_price,
+            "discount": discount,
+            "delivery_time": random.randint(20, 45),
+            "platform": random.choice(["Swiggy", "Zomato"])
+        })
+
+    return results
+
 
 @app.get("/")
 def home():
@@ -28,63 +51,33 @@ def home():
 @app.get("/search")
 def search(query: str, user: str = "guest"):
 
-    if user not in user_memory:
-        user_memory[user] = {"cheap":1,"fast":1,"discount":1}
+    results = generate_results(query)
 
-    prefs = user_memory[user]
+    # Sort by best price
+    results = sorted(results, key=lambda x: x["final_price"])
 
-    results = []
+    # ✅ AI Message (safe fallback)
+    ai_message = f"Showing best deals for {query}"
 
-    for i in range(8):
-        original = random.randint(150,400)
-        discount = random.choice([20,30,40,50])
-        final = round(original*(1-discount/100),2)
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a food recommendation AI."},
+                    {"role": "user", "content": f"Suggest best {query} options for {user}"}
+                ],
+                max_tokens=60
+            )
 
-        results.append({
-            "restaurant": f"Restaurant {i+1}",
-            "original_price": original,
-            "discount": discount,
-            "final_price": final,
-            "delivery_time": random.randint(20,45),
-            "platform": random.choice(["Swiggy","Zomato"])
-        })
+            ai_message = response.choices[0].message.content
 
-    # SORT USING USER PREF
-    def score(x):
-        return (
-            x["final_price"]*prefs["cheap"] +
-            x["delivery_time"]*prefs["fast"] -
-            x["discount"]*prefs["discount"]
-        )
-
-    results = sorted(results, key=score)
-
-    # 🧠 AI REASONING
-    try:
-        ai_response = client.chat.completions.create(
-            model="gpt-5-mini",
-            messages=[
-                {"role":"system","content":"You are a food recommendation assistant like Swiggy AI."},
-                {"role":"user","content":f"User searched: {query}. Explain best recommendation in 2 lines."}
-            ]
-        )
-
-        explanation = ai_response.choices[0].message.content
-
-    except:
-        explanation = "Showing best results based on price, delivery time and discounts."
+        except Exception as e:
+            ai_message = f"AI suggestion unavailable (error handled)"
 
     return {
+        "query": query,
+        "user": user,
         "results": results,
-        "ai_message": explanation
+        "ai_message": ai_message
     }
-
-
-@app.get("/feedback")
-def feedback(user: str, type: str):
-    if user not in user_memory:
-        user_memory[user] = {"cheap":1,"fast":1,"discount":1}
-
-    user_memory[user][type] += 1
-
-    return {"message":"AI learned"}
