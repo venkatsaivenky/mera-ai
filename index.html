@@ -7,60 +7,28 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
-    transition: 0.3s;
 }
 
-/* DARK MODE */
 .dark {
     background: #121212;
     color: white;
 }
 
-/* HEADER */
 .header {
     display: flex;
     justify-content: space-between;
     padding: 15px 25px;
     background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .dark .header {
     background: #1e1e1e;
 }
 
-.user {
-    font-weight: bold;
-}
-
-/* LOGIN */
-#loginPage {
-    display: flex;
-    height: 100vh;
-    justify-content: center;
-    align-items: center;
-}
-
-.login-box {
-    background: white;
-    padding: 30px;
-    border-radius: 10px;
-}
-
-.dark .login-box {
-    background: #1e1e1e;
-}
-
-/* APP */
-#app {
-    display: none;
-}
-
 .container {
     display: flex;
 }
 
-/* SIDEBAR */
 .sidebar {
     width: 220px;
     background: #202123;
@@ -69,35 +37,23 @@ body {
     height: 100vh;
 }
 
-/* MAIN */
 .main {
     flex: 1;
     padding: 20px;
 }
 
-/* SEARCH */
-.search-box {
-    display: flex;
-    margin-bottom: 20px;
+.search-box input, .filters input {
+    padding: 10px;
+    margin-right: 10px;
 }
 
-.search-box input {
-    flex: 1;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-}
-
-.search-box button {
-    margin-left: 10px;
-    padding: 12px;
+button {
+    padding: 10px;
     background: #ff5a5f;
     color: white;
     border: none;
-    border-radius: 8px;
 }
 
-/* CARDS */
 .results {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -108,15 +64,10 @@ body {
     background: white;
     border-radius: 10px;
     overflow: hidden;
-    transition: 0.2s;
 }
 
 .dark .card {
     background: #1e1e1e;
-}
-
-.card:hover {
-    transform: translateY(-5px);
 }
 
 .card img {
@@ -144,80 +95,42 @@ body {
     color: white;
     padding: 4px;
     border-radius: 4px;
-    font-size: 12px;
-}
-
-.best {
-    background: orange;
-}
-
-/* LOADER */
-.loader {
-    margin-bottom: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
-<div id="loginPage">
-    <div class="login-box">
-        <h2>Mera AI Login</h2>
-        <input id="username" placeholder="Enter name"><br><br>
-        <button onclick="login()">Login</button>
-    </div>
+<div class="header">
+    <div>Mera AI 🍔</div>
+    <div id="userName"></div>
 </div>
 
-<!-- APP -->
-<div id="app">
+<div class="container">
 
-    <div class="header">
-        <div>Mera AI 🍔</div>
-        <div id="userName" class="user"></div>
-    </div>
+<div class="sidebar">
+    <button onclick="toggleDark()">🌙 Dark Mode</button>
+</div>
 
-    <div class="container">
+<div class="main">
 
-        <div class="sidebar">
-            <button onclick="toggleDark()">🌙 Dark Mode</button>
-        </div>
+<div class="search-box">
+    <input id="query" placeholder="Search food">
+    <button onclick="search()">Search</button>
+</div>
 
-        <div class="main">
+<!-- 🔥 FILTERS -->
+<div class="filters">
+    <input id="maxPrice" placeholder="Max Price">
+    <input id="maxTime" placeholder="Max Time">
+</div>
 
-            <div class="search-box">
-                <input id="query" placeholder="Search food (biryani, pizza, waffle...)" />
-                <button onclick="search()">Search</button>
-            </div>
+<div id="results" class="results"></div>
 
-            <div id="loader" class="loader"></div>
-            <div id="results" class="results"></div>
-
-        </div>
-    </div>
+</div>
 </div>
 
 <script>
-
-/* LOGIN */
-function login() {
-    let name = document.getElementById("username").value;
-    if (!name) return;
-
-    localStorage.setItem("user", name);
-    showApp();
-}
-
-/* LOAD USER */
-function showApp() {
-    let user = localStorage.getItem("user");
-
-    if (!user) return;
-
-    document.getElementById("loginPage").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("userName").innerText = user;
-}
 
 /* DARK MODE */
 function toggleDark() {
@@ -228,29 +141,26 @@ function toggleDark() {
 async function search() {
     let query = document.getElementById("query").value;
 
-    if (!query) return;
-
-    document.getElementById("loader").innerText = "Finding best deals...";
-
-    let res = await fetch("https://mera-ai.onrender.com/search?query=" + encodeURIComponent(query));
+    let res = await fetch("https://mera-ai.onrender.com/search?query=" + query);
     let data = await res.json();
 
-    document.getElementById("loader").innerText = "";
+    let maxPrice = document.getElementById("maxPrice").value;
+    let maxTime = document.getElementById("maxTime").value;
+
+    let filtered = data.results.filter(r => {
+        return (!maxPrice || r.final_price <= maxPrice) &&
+               (!maxTime || r.delivery_time <= maxTime);
+    });
 
     let html = "";
 
-    if (!data.results || data.results.length === 0) {
-        html = "<p>No results found. Showing random deals...</p>";
-    }
-
-    data.results.forEach((r, index) => {
+    filtered.forEach((r, index) => {
 
         let img = "https://loremflickr.com/400/300/" + query;
 
         html += `
         <div class="card">
             <img src="${img}" onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
-
             <div class="card-content">
                 <h3>${r.restaurant}</h3>
 
@@ -260,10 +170,10 @@ async function search() {
                 </p>
 
                 <div class="badge">${r.discount}% OFF</div>
-                <p>⏱ ${r.delivery_time} mins</p>
+                <p>${r.delivery_time} mins</p>
                 <p>${r.platform}</p>
 
-                ${index === 0 ? '<div class="badge best">Best Deal ⭐</div>' : ''}
+                ${index === 0 ? '<div class="badge" style="background:orange;">Best Deal ⭐</div>' : ''}
             </div>
         </div>
         `;
@@ -276,10 +186,6 @@ async function search() {
 document.addEventListener("keypress", function(e) {
     if (e.key === "Enter") search();
 });
-
-/* AUTO LOGIN */
-showApp();
-
 </script>
 
 </body>
