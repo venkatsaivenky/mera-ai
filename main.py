@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 import random
+import uvicorn
 import os
 
 app = FastAPI()
@@ -17,18 +17,28 @@ app.add_middleware(
 # 🧠 USER MEMORY (AI)
 user_memory = {}
 
+# 🍽️ SUGGESTION DATABASE
+suggestions_db = {
+    "biryani": ["chicken biryani", "mutton biryani", "veg biryani"],
+    "pizza": ["cheese pizza", "pepperoni pizza", "farmhouse pizza"],
+    "burger": ["chicken burger", "veg burger", "cheese burger"],
+    "dosa": ["masala dosa", "plain dosa", "rava dosa"],
+    "waffle": ["chocolate waffle", "nutella waffle", "strawberry waffle"]
+}
+
 @app.get("/")
 def home():
     return {"message": "Mera AI working ✅"}
 
+# 🔍 SEARCH (AI powered)
 @app.get("/search")
 def search(query: str, user: str = "guest"):
 
     if user not in user_memory:
         user_memory[user] = {
-            "low_price": 1,
-            "fast_delivery": 1,
-            "high_discount": 1
+            "cheap": 1,
+            "fast": 1,
+            "discount": 1
         }
 
     prefs = user_memory[user]
@@ -36,51 +46,56 @@ def search(query: str, user: str = "guest"):
     results = []
 
     for i in range(10):
-        original_price = random.randint(150, 400)
+        original = random.randint(150, 400)
         discount = random.choice([20, 30, 40, 50])
-        final_price = round(original_price * (1 - discount/100), 2)
+        final = round(original * (1 - discount / 100), 2)
 
         results.append({
             "restaurant": f"Restaurant {i+1}",
-            "original_price": original_price,
+            "original_price": original,
             "discount": discount,
-            "final_price": final_price,
+            "final_price": final,
             "delivery_time": random.randint(20, 45),
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    # 🧠 AI SCORING
-    def score(item):
+    # 🧠 AI scoring
+    def score(x):
         return (
-            item["final_price"] * prefs["low_price"] +
-            item["delivery_time"] * prefs["fast_delivery"] -
-            item["discount"] * prefs["high_discount"]
+            x["final_price"] * prefs["cheap"] +
+            x["delivery_time"] * prefs["fast"] -
+            x["discount"] * prefs["discount"]
         )
 
     results = sorted(results, key=score)
 
     return {"results": results}
 
+
 # 🧠 LEARNING API
 @app.get("/feedback")
 def feedback(user: str, type: str):
 
     if user not in user_memory:
-        user_memory[user] = {
-            "low_price": 1,
-            "fast_delivery": 1,
-            "high_discount": 1
-        }
+        user_memory[user] = {"cheap":1,"fast":1,"discount":1}
 
-    if type == "cheap":
-        user_memory[user]["low_price"] += 1
-    elif type == "fast":
-        user_memory[user]["fast_delivery"] += 1
-    elif type == "discount":
-        user_memory[user]["high_discount"] += 1
+    user_memory[user][type] += 1
 
-    return {"message": "AI learned ✅"}
+    return {"message": "AI learned"}
 
+
+# 🔥 AUTOSUGGEST API
+@app.get("/suggest")
+def suggest(query: str):
+
+    for key in suggestions_db:
+        if key in query.lower():
+            return {"suggestions": suggestions_db[key]}
+
+    return {"suggestions": []}
+
+
+# PORT FIX FOR RENDER
 port = int(os.environ.get("PORT", 10000))
 
 if __name__ == "__main__":
