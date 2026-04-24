@@ -8,14 +8,32 @@ body {margin:0; font-family:Arial; background:#111; color:white;}
 .light {background:#f5f5f5; color:black;}
 
 .header {padding:15px; background:#1e1e1e; display:flex; justify-content:space-between;}
+
 .main {display:flex;}
-.sidebar {width:260px; background:#000; padding:15px;}
+.sidebar {width:260px; background:#000; padding:15px; display:none;}
 .light .sidebar {background:#eee;}
 
-button {width:100%; margin-bottom:10px; padding:10px; border:none; border-radius:6px; background:#ff5a5f; color:white;}
-input {padding:10px; width:70%; border-radius:6px;}
+button {
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  background:#ff5a5f;
+  color:white;
+  cursor:pointer;
+}
+
+input {
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  border-radius:6px;
+  border:none;
+}
 
 .content {flex:1; padding:20px;}
+
 .card {background:#1e1e1e; padding:10px; margin:10px; border-radius:10px;}
 .light .card {background:#fff;}
 
@@ -32,7 +50,8 @@ input {padding:10px; width:70%; border-radius:6px;}
 
 <div class="main">
 
-<div class="sidebar">
+<!-- 🔴 SIDEBAR (HIDDEN INITIALLY) -->
+<div class="sidebar" id="sidebar">
   <button onclick="newThread()">+ New Chat</button>
   <button onclick="toggleMode()">🌙 Toggle Mode</button>
   <button onclick="clearHistory()">🗑 Clear History</button>
@@ -44,16 +63,24 @@ input {padding:10px; width:70%; border-radius:6px;}
   <div id="history"></div>
 </div>
 
+<!-- 🟢 CONTENT -->
 <div class="content">
 
+<!-- 🔐 LOGIN / SIGNUP -->
 <div id="loginBox">
-  <input id="u" placeholder="username">
-  <input id="p" type="password" placeholder="password">
+  <h2>Login / Signup</h2>
+
+  <input id="u" placeholder="Username">
+  <input id="p" type="password" placeholder="Password">
+
   <button onclick="login()">Login</button>
+  <button onclick="signup()">Signup</button>
 </div>
 
+<!-- 🚀 APP -->
 <div id="app" style="display:none;">
-  <input id="query" placeholder="Search..." onkeydown="if(event.key==='Enter')search()">
+  <input id="query" placeholder="Search food..." 
+    onkeydown="if(event.key==='Enter')search()">
   <button onclick="search()">Search</button>
 
   <div id="chat"></div>
@@ -68,23 +95,53 @@ let user="";
 let thread="chat1";
 let dark=true;
 
-// LOGIN
-async function login(){
- let u=document.getElementById("u").value;
- let p=document.getElementById("p").value;
+// ---------------- AUTH ----------------
 
- let res=await fetch(`https://mera-ai.onrender.com/login?username=${u}&password=${p}`,{method:"POST"});
+async function signup(){
+  let u=document.getElementById("u").value;
+  let p=document.getElementById("p").value;
 
- if(res.ok){
-   user=u;
-   document.getElementById("loginBox").style.display="none";
-   document.getElementById("app").style.display="block";
-   document.getElementById("user").innerHTML="👤 "+u;
-   loadThreads();
- }
+  let res = await fetch(`https://mera-ai.onrender.com/signup?username=${u}&password=${p}`,{
+    method:"POST"
+  });
+
+  if(res.ok){
+    alert("Signup successful! Now login.");
+  }else{
+    alert("User already exists");
+  }
 }
 
-// SEARCH
+async function login(){
+  let u=document.getElementById("u").value;
+  let p=document.getElementById("p").value;
+
+  let res = await fetch(`https://mera-ai.onrender.com/login?username=${u}&password=${p}`,{
+    method:"POST"
+  });
+
+  if(res.ok){
+    user=u;
+
+    // hide login
+    document.getElementById("loginBox").style.display="none";
+
+    // show app
+    document.getElementById("app").style.display="block";
+
+    // show sidebar
+    document.getElementById("sidebar").style.display="block";
+
+    document.getElementById("user").innerHTML="👤 "+u;
+
+    loadThreads();
+  }else{
+    alert("Invalid login");
+  }
+}
+
+// ---------------- SEARCH ----------------
+
 async function search(){
  let q=document.getElementById("query").value;
 
@@ -108,7 +165,8 @@ async function search(){
  loadThreads();
 }
 
-// THREADS
+// ---------------- THREADS ----------------
+
 function newThread(){
  thread="chat"+Date.now();
  document.getElementById("chat").innerHTML="";
@@ -127,7 +185,8 @@ function switchThread(t){
  loadHistory();
 }
 
-// HISTORY
+// ---------------- HISTORY ----------------
+
 async function loadHistory(){
  let res=await fetch(`https://mera-ai.onrender.com/history?user=${user}&thread=${thread}`);
  let data=await res.json();
@@ -141,14 +200,16 @@ function repeat(q){
  search();
 }
 
-// CLEAR
+// ---------------- CLEAR ----------------
+
 async function clearHistory(){
  await fetch(`https://mera-ai.onrender.com/clear?user=${user}`,{method:"DELETE"});
  loadHistory();
  loadThreads();
 }
 
-// DARK MODE
+// ---------------- DARK MODE ----------------
+
 function toggleMode(){
  dark=!dark;
  document.body.classList.toggle("light");
