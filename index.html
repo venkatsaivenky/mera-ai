@@ -10,6 +10,7 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
 .sidebar { width:220px; background:#000; padding:15px; }
 .sidebar button { width:100%; margin-bottom:10px; padding:10px; background:#ff5a5f; color:white; border:none; }
 .content { flex:1; padding:20px; }
+
 .search-box { display:flex; gap:10px; }
 
 input { flex:1; padding:12px; border-radius:8px; border:none; }
@@ -58,29 +59,19 @@ button.search {
 
 <div class="header">
   <h2>Mera AI 🍔</h2>
-  <div>👤 <span id="username"></span></div>
 </div>
 
 <div class="main">
 
 <div class="sidebar">
-  <button onclick="newChat()">➕ New Chat</button>
-  <button onclick="clearHistory()">🗑 Clear History</button>
-
-  <h4>History</h4>
-  <div id="history"></div>
+  <button onclick="search()">🔍 Search</button>
 </div>
 
 <div class="content">
 
 <div class="search-box">
-  <input id="query" list="suggestions"
-    placeholder="Search food..."
-    oninput="suggest()"
+  <input id="query" placeholder="Search food..."
     onkeydown="if(event.key==='Enter') search()"/>
-    
-  <datalist id="suggestions"></datalist>
-
   <button class="search" onclick="search()">Search</button>
 </div>
 
@@ -91,45 +82,11 @@ button.search {
 
 <script>
 
-/* USER */
-if(!localStorage.getItem("user")){
-  let name = prompt("Enter your name");
-  localStorage.setItem("user", name);
-}
-document.getElementById("username").innerText = localStorage.getItem("user");
-
-/* AUTO SUGGEST */
-function suggest(){
-  let q = document.getElementById("query").value.toLowerCase();
-
-  let suggestions = [
-    "chicken biryani","veg biryani","pizza","burger",
-    "dosa","idli","pasta","noodles","waffle","cake"
-  ];
-
-  let filtered = suggestions.filter(i => i.includes(q));
-
-  let html = "";
-  filtered.forEach(s=>{
-    html += `<option value="${s}">`;
-  });
-
-  document.getElementById("suggestions").innerHTML = html;
-}
-
-/* REAL FOOD IMAGE */
-function getFoodImage(query, restaurant){
-  let keyword = restaurant.toLowerCase().replace("spot","");
-  return `https://images.unsplash.com/featured/?${keyword},food`;
-}
-
-/* SEARCH */
 async function search(){
 
  let query = document.getElementById("query").value;
 
- saveHistory(query);
- document.getElementById("chat").innerHTML="";
+ if(!query) return;
 
  let res = await fetch(`https://mera-ai.onrender.com/search?query=${query}`);
  let data = await res.json();
@@ -138,11 +95,11 @@ async function search(){
 
  data.results.forEach((r,i)=>{
 
-  let img = getFoodImage(query, r.restaurant);
-
   cards += `
   <div class="card">
-    <img src="${img}">
+    <img src="${r.image}"
+         onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
+
     <h3>${r.restaurant}</h3>
 
     <p>
@@ -162,37 +119,6 @@ async function search(){
   <div class="ai-box">🤖 ${data.ai_message}</div>
   <div class="cards">${cards}</div>`;
 }
-
-/* HISTORY */
-function saveHistory(q){
- let h=JSON.parse(localStorage.getItem("history")||"[]");
- h.unshift(q);
- localStorage.setItem("history",JSON.stringify(h));
- loadHistory();
-}
-
-function loadHistory(){
- let h=JSON.parse(localStorage.getItem("history")||"[]");
- let html="";
- h.forEach(i=>{ html+=`<div onclick="fill('${i}')">${i}</div>`; });
- document.getElementById("history").innerHTML=html;
-}
-
-function fill(q){
- document.getElementById("query").value=q;
- search();
-}
-
-function clearHistory(){
- localStorage.removeItem("history");
- loadHistory();
-}
-
-function newChat(){
- document.getElementById("chat").innerHTML="";
-}
-
-loadHistory();
 
 </script>
 
