@@ -29,7 +29,6 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
   color:white;
   border:none;
   border-radius:6px;
-  cursor:pointer;
 }
 
 .content { flex:1; padding:20px; }
@@ -44,15 +43,25 @@ input {
   padding:12px;
   border-radius:8px;
   border:none;
-  font-size:16px;
 }
 
 button.search {
-  padding:12px 20px;
+  padding:12px;
   background:#ff5a5f;
-  border:none;
   color:white;
+  border:none;
   border-radius:8px;
+}
+
+.suggestions {
+  margin-top:10px;
+}
+
+.suggestions span {
+  background:#333;
+  padding:5px 10px;
+  margin-right:5px;
+  border-radius:5px;
   cursor:pointer;
 }
 
@@ -82,18 +91,6 @@ button.search {
   background:#10a37f;
   border-radius:8px;
 }
-
-.loader {
-  margin-top:10px;
-  color:#ccc;
-}
-
-.error {
-  margin-top:10px;
-  background:#ff4d4d;
-  padding:10px;
-  border-radius:6px;
-}
 </style>
 </head>
 
@@ -109,7 +106,6 @@ button.search {
 <div class="sidebar">
   <button onclick="newChat()">➕ New Chat</button>
   <button onclick="clearHistory()">🗑 Clear History</button>
-
   <div id="history"></div>
 </div>
 
@@ -121,6 +117,7 @@ button.search {
   <button class="search" onclick="search()">Search</button>
 </div>
 
+<div id="suggestions" class="suggestions"></div>
 <div id="chat"></div>
 
 </div>
@@ -128,30 +125,28 @@ button.search {
 
 <script>
 
-function saveHistory(q){
-  let h = JSON.parse(localStorage.getItem("history") || "[]");
-  h.unshift(q);
-  localStorage.setItem("history", JSON.stringify(h));
-  loadHistory();
-}
-
-function loadHistory(){
-  let h = JSON.parse(localStorage.getItem("history") || "[]");
-  document.getElementById("history").innerHTML =
-    h.map(x => `<div onclick="repeatSearch('${x}')">${x}</div>`).join("");
-}
+function newChat(){ document.getElementById("chat").innerHTML=""; }
 
 function clearHistory(){
   localStorage.removeItem("history");
   loadHistory();
 }
 
-function newChat(){
-  document.getElementById("chat").innerHTML = "";
+function saveHistory(q){
+  let h = JSON.parse(localStorage.getItem("history")||"[]");
+  h.unshift(q);
+  localStorage.setItem("history",JSON.stringify(h));
+  loadHistory();
 }
 
-function repeatSearch(q){
-  document.getElementById("query").value = q;
+function loadHistory(){
+  let h = JSON.parse(localStorage.getItem("history")||"[]");
+  document.getElementById("history").innerHTML =
+    h.map(x=>`<div onclick="repeat('${x}')">${x}</div>`).join("");
+}
+
+function repeat(q){
+  document.getElementById("query").value=q;
   search();
 }
 
@@ -162,50 +157,42 @@ async function search(){
 
  saveHistory(query);
 
- document.getElementById("chat").innerHTML += `
-  <div><b>You:</b> ${query}</div>
-  <div class="loader">⏳ Loading results...</div>`;
+ document.getElementById("chat").innerHTML = "<p>⏳ Loading...</p>";
 
  try {
 
   let res = await fetch(`https://mera-ai.onrender.com/search?query=${query}`);
-
-  if (!res.ok) throw new Error("API failed");
-
   let data = await res.json();
+
+  // suggestions
+  document.getElementById("suggestions").innerHTML =
+    data.suggestions.map(s=>`<span onclick="repeat('${s}')">${s}</span>`).join("");
 
   let cards="";
 
   data.results.forEach((r,i)=>{
-
     cards += `
     <div class="card">
-
-      <img src="${r.image}" 
-           loading="lazy"
-           referrerpolicy="no-referrer"
-           onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
+      <img src="${r.image}"
+       loading="lazy"
+       referrerpolicy="no-referrer"
+       onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
 
       <h3>${r.restaurant}</h3>
-
       <p>₹${r.final_price} <span style="text-decoration:line-through;color:gray;">₹${r.original_price}</span></p>
-
       <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
       <p>${r.platform}</p>
-
       ${i===0 ? "<b>🔥 Best Choice</b>" : ""}
-
     </div>`;
   });
 
-  document.getElementById("chat").innerHTML += `
+  document.getElementById("chat").innerHTML = `
     <div class="ai-box">🤖 ${data.ai_message}</div>
     <div class="cards">${cards}</div>`;
 
- } catch (e) {
-
-  document.getElementById("chat").innerHTML += `
-    <div class="error">⚠️ Backend is sleeping or down. Try again in 30 seconds.</div>`;
+ } catch {
+  document.getElementById("chat").innerHTML =
+    "<p>⚠️ Backend issue. Try again.</p>";
  }
 
 }
