@@ -15,10 +15,10 @@ app.add_middleware(
 
 @app.get("/")
 def home():
-    return {"message": "Mera AI working ✅"}
+    return {"message": "Mera AI running 🚀"}
 
 
-# ✅ RELIABLE IMAGES
+# 🔥 FOOD IMAGE MAP
 FOOD_IMAGES = {
     "biryani": "https://upload.wikimedia.org/wikipedia/commons/3/35/Chicken_Biryani.jpg",
     "pizza": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Supreme_pizza.jpg",
@@ -27,23 +27,41 @@ FOOD_IMAGES = {
     "waffle": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Waffles_with_Strawberries.jpg"
 }
 
+
+# 🔥 FOOD VARIATIONS (AI suggestions)
+FOOD_VARIANTS = {
+    "biryani": ["chicken biryani", "mutton biryani", "veg biryani", "paneer biryani"],
+    "pizza": ["cheese pizza", "farmhouse pizza", "pepperoni pizza", "margherita pizza"],
+    "burger": ["chicken burger", "veg burger", "cheese burger"],
+    "dosa": ["masala dosa", "plain dosa", "rava dosa"],
+}
+
+
 def get_image(query):
-    q = query.lower()
     for key in FOOD_IMAGES:
-        if key in q:
+        if key in query.lower():
             return FOOD_IMAGES[key]
     return "https://via.placeholder.com/400x300?text=Food"
+
+
+# 🔥 AI SCORING
+def score(item):
+    return item["final_price"] * 0.5 + item["delivery_time"] * 0.3 - item["discount"] * 0.2
 
 
 @app.get("/search")
 def search(query: str):
 
+    base = query.lower()
+    image = get_image(base)
+
     results = []
 
-    for i in range(8):
+    # generate realistic dishes
+    for i in range(10):
         results.append({
-            "restaurant": f"{query.title()} Spot {i+1}",
-            "image": get_image(query),
+            "restaurant": f"{query.title()} Hub {i+1}",
+            "image": image,
             "original_price": random.randint(200, 350),
             "final_price": random.randint(120, 250),
             "discount": random.choice([20, 30, 40, 50]),
@@ -51,11 +69,19 @@ def search(query: str):
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    results = sorted(results, key=lambda x: x["final_price"] + x["delivery_time"])
+    # AI ranking
+    results = sorted(results, key=score)
+
+    # suggestions
+    suggestions = []
+    for key in FOOD_VARIANTS:
+        if key in base:
+            suggestions = FOOD_VARIANTS[key]
 
     return {
         "results": results,
-        "ai_message": f"Showing best deals for {query}"
+        "ai_message": f"Top smart recommendations for {query}",
+        "suggestions": suggestions
     }
 
 
