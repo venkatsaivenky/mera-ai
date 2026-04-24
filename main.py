@@ -5,7 +5,6 @@ import os
 
 app = FastAPI()
 
-# ✅ CORS (important for frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,7 +13,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Food dataset
 foods = {
     "biryani": ["Chicken Biryani", "Hyderabadi Biryani", "Veg Biryani"],
     "pizza": ["Margherita Pizza", "Farmhouse Pizza", "Cheese Burst Pizza"],
@@ -33,7 +31,6 @@ def search(query: str):
 
     query_lower = query.lower()
 
-    # detect food type
     food_type = None
     for key in foods:
         if key in query_lower:
@@ -48,24 +45,33 @@ def search(query: str):
     for i in range(10):
         original_price = random.randint(150, 350)
         discount = random.choice([20, 30, 40, 50])
+        delivery_time = random.randint(20, 45)
+
         final_price = round(original_price * (1 - discount / 100), 1)
+
+        # 🧠 AI SCORE
+        score = (100 - final_price) + (50 - delivery_time)
 
         results.append({
             "restaurant": f"{random.choice(foods[food_type])} Spot {i+1}",
             "original_price": original_price,
             "final_price": final_price,
             "discount": discount,
-            "delivery_time": random.randint(20, 45),
-            "platform": random.choice(["Zomato", "Swiggy"])
+            "delivery_time": delivery_time,
+            "platform": random.choice(["Zomato", "Swiggy"]),
+            "score": score
         })
+
+    # 🔥 SORT BY AI LOGIC
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
 
     return {
         "query": query,
         "results": results,
-        "ai_message": f"Showing best deals for {query}"
+        "ai_message": f"Top recommendations for {query} based on price & delivery time"
     }
 
-# ✅ THIS FIXES MOST RENDER ERRORS
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 10000))
