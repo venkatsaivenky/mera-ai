@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import random
+import json
 import os
 
 app = FastAPI()
@@ -13,62 +13,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-foods = {
-    "biryani": ["Chicken Biryani", "Hyderabadi Biryani", "Veg Biryani"],
-    "pizza": ["Margherita Pizza", "Farmhouse Pizza", "Cheese Burst Pizza"],
-    "burger": ["Chicken Burger", "Veg Burger", "Cheese Burger"],
-    "dosa": ["Masala Dosa", "Plain Dosa", "Butter Dosa"],
-    "pasta": ["White Sauce Pasta", "Red Sauce Pasta"],
-    "noodles": ["Hakka Noodles", "Schezwan Noodles"],
-}
-
 @app.get("/")
 def home():
     return {"message": "Mera AI working ✅"}
 
+
 @app.get("/search")
 def search(query: str):
 
-    query_lower = query.lower()
+    try:
+        with open("data.json") as f:
+            data = json.load(f)
+    except:
+        data = []
 
-    food_type = None
-    for key in foods:
-        if key in query_lower:
-            food_type = key
-            break
+    # filter results
+    filtered = []
+    for item in data:
+        if query.lower() in item["restaurant"].lower():
+            filtered.append(item)
 
-    if not food_type:
-        food_type = random.choice(list(foods.keys()))
+    if not filtered:
+        filtered = data
 
-    results = []
-
-    for i in range(10):
-        original_price = random.randint(150, 350)
-        discount = random.choice([20, 30, 40, 50])
-        delivery_time = random.randint(20, 45)
-
-        final_price = round(original_price * (1 - discount / 100), 1)
-
-        # 🧠 AI SCORE
-        score = (100 - final_price) + (50 - delivery_time)
-
-        results.append({
-            "restaurant": f"{random.choice(foods[food_type])} Spot {i+1}",
-            "original_price": original_price,
-            "final_price": final_price,
-            "discount": discount,
-            "delivery_time": delivery_time,
-            "platform": random.choice(["Zomato", "Swiggy"]),
-            "score": score
-        })
-
-    # 🔥 SORT BY AI LOGIC
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
+    # AI ranking (price + delivery)
+    filtered = sorted(
+        filtered,
+        key=lambda x: x["final_price"] + x["delivery_time"]
+    )
 
     return {
-        "query": query,
-        "results": results,
-        "ai_message": f"Top recommendations for {query} based on price & delivery time"
+        "results": filtered,
+        "ai_message": f"Top results for {query}"
     }
 
 
