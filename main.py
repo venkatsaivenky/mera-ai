@@ -1,16 +1,7 @@
-# main.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import random
 import os
-
-# ✅ Safe OpenAI import (prevents crash)
-try:
-    from openai import OpenAI
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-except:
-    client = None
 
 app = FastAPI()
 
@@ -23,61 +14,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Dummy food generator
-def generate_results(query):
-    results = []
-    for i in range(10):
-        original_price = random.randint(150, 350)
-        discount = random.choice([10, 20, 30, 40, 50])
-        final_price = round(original_price * (1 - discount/100), 1)
-
-        results.append({
-            "restaurant": f"{query.title()} Spot {i+1}",
-            "original_price": original_price,
-            "final_price": final_price,
-            "discount": discount,
-            "delivery_time": random.randint(20, 45),
-            "platform": random.choice(["Swiggy", "Zomato"])
-        })
-
-    return results
-
+# ✅ Food dataset
+foods = {
+    "biryani": ["Chicken Biryani", "Hyderabadi Biryani", "Veg Biryani"],
+    "pizza": ["Margherita Pizza", "Farmhouse Pizza", "Cheese Burst Pizza"],
+    "burger": ["Chicken Burger", "Veg Burger", "Cheese Burger"],
+    "dosa": ["Masala Dosa", "Plain Dosa", "Butter Dosa"],
+    "pasta": ["White Sauce Pasta", "Red Sauce Pasta"],
+    "noodles": ["Hakka Noodles", "Schezwan Noodles"],
+}
 
 @app.get("/")
 def home():
     return {"message": "Mera AI working ✅"}
 
-
 @app.get("/search")
-def search(query: str, user: str = "guest"):
+def search(query: str):
 
-    results = generate_results(query)
+    query_lower = query.lower()
 
-    # Sort by best price
-    results = sorted(results, key=lambda x: x["final_price"])
+    # detect food type
+    food_type = None
+    for key in foods:
+        if key in query_lower:
+            food_type = key
+            break
 
-    # ✅ AI Message (safe fallback)
-    ai_message = f"Showing best deals for {query}"
+    if not food_type:
+        food_type = random.choice(list(foods.keys()))
 
-    if client:
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a food recommendation AI."},
-                    {"role": "user", "content": f"Suggest best {query} options for {user}"}
-                ],
-                max_tokens=60
-            )
+    results = []
 
-            ai_message = response.choices[0].message.content
+    for i in range(10):
+        original_price = random.randint(150, 350)
+        discount = random.choice([20, 30, 40, 50])
+        final_price = round(original_price * (1 - discount / 100), 1)
 
-        except Exception as e:
-            ai_message = f"AI suggestion unavailable (error handled)"
+        results.append({
+            "restaurant": f"{random.choice(foods[food_type])} Spot {i+1}",
+            "original_price": original_price,
+            "final_price": final_price,
+            "discount": discount,
+            "delivery_time": random.randint(20, 45),
+            "platform": random.choice(["Zomato", "Swiggy"])
+        })
 
     return {
         "query": query,
-        "user": user,
         "results": results,
-        "ai_message": ai_message
+        "ai_message": f"Showing best deals for {query}"
     }
+
+# ✅ THIS FIXES MOST RENDER ERRORS
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
