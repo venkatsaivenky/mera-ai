@@ -1,100 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Mera AI 🍔</title>
+<title>Mera AI</title>
 
 <style>
-body {
-  margin:0;
-  font-family:Arial;
-  background:#111;
-  color:white;
-  transition:0.3s;
-}
+body {margin:0; font-family:Arial; background:#111; color:white;}
+.header {padding:15px; background:#1e1e1e; display:flex; justify-content:space-between;}
+.main {display:flex;}
+.sidebar {width:250px; background:#000; padding:15px;}
+.content {flex:1; padding:20px;}
 
-.light {
-  background:#f5f5f5;
-  color:black;
-}
-
-.header {
-  display:flex;
-  justify-content:space-between;
-  padding:15px;
-  background:#1e1e1e;
-}
-
-.light .header { background:#ddd; }
-
-.main { display:flex; }
-
-.sidebar {
-  width:220px;
-  background:#000;
-  padding:15px;
-}
-
-.light .sidebar { background:#eee; }
-
-.sidebar button {
-  width:100%;
-  margin-bottom:10px;
+input, button {
   padding:10px;
-  background:#ff5a5f;
-  color:white;
-  border:none;
   border-radius:6px;
-  cursor:pointer;
-}
-
-.history-item {
-  cursor:pointer;
-  padding:5px;
-}
-
-.content { flex:1; padding:20px; }
-
-.search-box {
-  display:flex;
-  gap:10px;
-}
-
-input {
-  flex:1;
-  padding:12px;
-  border-radius:8px;
   border:none;
 }
 
-.cards {
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
-  gap:20px;
-  margin-top:20px;
-}
+button {background:#ff5a5f; color:white; cursor:pointer;}
 
-.card {
-  background:#1e1e1e;
-  padding:10px;
-  border-radius:10px;
-}
-
-.light .card { background:#fff; }
-
-.card img {
-  width:100%;
-  height:150px;
-  object-fit:cover;
-  border-radius:10px;
-}
-
-.ai-box {
-  margin-top:10px;
-  padding:10px;
-  background:#10a37f;
-  border-radius:8px;
-}
-
+.card {background:#1e1e1e; padding:10px; margin:10px; border-radius:10px;}
+.card img {width:100%; height:150px; object-fit:cover;}
 </style>
 </head>
 
@@ -102,136 +27,104 @@ input {
 
 <div class="header">
   <h2>Mera AI 🍔</h2>
-  <div>👤 venky</div>
+  <div id="user"></div>
 </div>
 
 <div class="main">
 
-<!-- 🔴 SIDEBAR -->
 <div class="sidebar">
-
-  <button onclick="newChat()">➕ New Chat</button>
-  <button onclick="toggleMode()">🌙 Toggle Mode</button>
-  <button onclick="clearHistory()">🗑 Clear History</button>
-
-  <h4>History</h4>
+  <button onclick="newChat()">+ New Chat</button>
+  <button onclick="loadHistory()">History</button>
   <div id="history"></div>
-
 </div>
 
-<!-- 🟢 CONTENT -->
 <div class="content">
 
-<div class="search-box">
-  <input id="query" placeholder="Search food..."
-    onkeydown="if(event.key==='Enter') search()"/>
-  <button onclick="search()">Search</button>
+<div id="loginBox">
+  <input id="u" placeholder="username">
+  <input id="p" type="password" placeholder="password">
+  <button onclick="login()">Login</button>
+  <button onclick="signup()">Signup</button>
 </div>
 
-<div id="chat"></div>
+<div id="app" style="display:none;">
+  <input id="query" placeholder="Search..." onkeydown="if(event.key==='Enter')search()">
+  <button onclick="search()">Search</button>
+
+  <div id="chat"></div>
+</div>
 
 </div>
 </div>
 
 <script>
 
-let dark = true;
+let user="";
 
-// 🌙 DARK MODE
-function toggleMode(){
-  dark = !dark;
-  document.body.classList.toggle("light");
+async function signup(){
+  let u=document.getElementById("u").value;
+  let p=document.getElementById("p").value;
+
+  await fetch("https://mera-ai.onrender.com/signup?username="+u+"&password="+p,{method:"POST"});
+  alert("Signup done");
 }
 
-// 🆕 NEW CHAT
-function newChat(){
-  document.getElementById("chat").innerHTML="";
+async function login(){
+  let u=document.getElementById("u").value;
+  let p=document.getElementById("p").value;
+
+  let res = await fetch("https://mera-ai.onrender.com/login?username="+u+"&password="+p,{method:"POST"});
+
+  if(res.ok){
+    user=u;
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("app").style.display="block";
+    document.getElementById("user").innerHTML="👤 "+u;
+    loadHistory();
+  }else{
+    alert("Login failed");
+  }
 }
 
-// 💾 SAVE HISTORY
-function saveHistory(q){
-  let h = JSON.parse(localStorage.getItem("history")||"[]");
-  h.unshift(q);
-  localStorage.setItem("history", JSON.stringify(h));
-  loadHistory();
-}
-
-// 📜 LOAD HISTORY
-function loadHistory(){
-  let h = JSON.parse(localStorage.getItem("history")||"[]");
-
-  document.getElementById("history").innerHTML =
-    h.map(x=>`<div class="history-item" onclick="repeat('${x}')">${x}</div>`).join("");
-}
-
-// 🔁 REPEAT SEARCH
-function repeat(q){
-  document.getElementById("query").value = q;
-  search();
-}
-
-// 🗑 CLEAR HISTORY
-function clearHistory(){
-  localStorage.removeItem("history");
-  loadHistory();
-}
-
-// 🔍 SEARCH
 async function search(){
 
- let query = document.getElementById("query").value.trim();
- if(!query) return;
+ let q=document.getElementById("query").value;
 
- saveHistory(query);
+ let res=await fetch(`https://mera-ai.onrender.com/search?query=${q}&user=${user}`);
+ let data=await res.json();
 
- let chat = document.getElementById("chat");
+ let html=`<div>${data.ai_message}</div>`;
 
- chat.innerHTML = "⏳ Loading...";
+ data.results.forEach(r=>{
+   html+=`
+   <div class="card">
+     <img src="${r.image}">
+     <h3>${r.restaurant}</h3>
+     ₹${r.final_price}
+   </div>`;
+ });
 
- try {
+ document.getElementById("chat").innerHTML=html;
 
-  let res = await fetch("https://mera-ai.onrender.com/search?query=" + encodeURIComponent(query));
-  let data = await res.json();
-
-  let cards = "";
-
-  data.results.forEach((r,i)=>{
-
-    cards += `
-    <div class="card">
-      <img src="${r.image}"
-        loading="lazy"
-        onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
-
-      <h3>${r.restaurant}</h3>
-
-      <p>₹${r.final_price} 
-        <span style="text-decoration:line-through;color:gray;">
-          ₹${r.original_price}
-        </span>
-      </p>
-
-      <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
-      <p>${r.platform}</p>
-
-      ${i===0 ? "<b>🔥 Best Choice</b>" : ""}
-    </div>
-    `;
-  });
-
-  chat.innerHTML = `
-    <div class="ai-box">🤖 ${data.ai_message}</div>
-    <div class="cards">${cards}</div>
-  `;
-
- } catch {
-  chat.innerHTML = "⚠️ Backend issue. Try again.";
- }
-
+ loadHistory();
 }
 
-// 🔁 LOAD HISTORY ON START
-loadHistory();
+async function loadHistory(){
+ let res=await fetch(`https://mera-ai.onrender.com/history?user=${user}`);
+ let data=await res.json();
+
+ document.getElementById("history").innerHTML=
+  data.map(x=>`<div onclick="repeat('${x}')">${x}</div>`).join("");
+}
+
+function repeat(q){
+ document.getElementById("query").value=q;
+ search();
+}
+
+function newChat(){
+ document.getElementById("chat").innerHTML="";
+}
 
 </script>
 
