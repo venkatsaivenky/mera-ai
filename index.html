@@ -123,7 +123,7 @@ button.search {
   </div>
 </div>
 
-<!-- Content -->
+<!-- Main Content -->
 <div class="content">
 
 <div class="search-box">
@@ -139,7 +139,7 @@ button.search {
 
 <script>
 
-// Save search history
+// Save history
 function saveHistory(q){
   let h = JSON.parse(localStorage.getItem("history") || "[]");
   h.unshift(q);
@@ -165,13 +165,13 @@ function newChat(){
   document.getElementById("chat").innerHTML = "";
 }
 
-// Repeat search from history
+// Click history
 function repeatSearch(q){
   document.getElementById("query").value = q;
   search();
 }
 
-// MAIN SEARCH FUNCTION
+// MAIN SEARCH
 async function search(){
 
  let query = document.getElementById("query").value;
@@ -189,8 +189,10 @@ async function search(){
   cards += `
   <div class="card">
 
-    <!-- ✅ FIXED IMAGE LINE -->
+    <!-- ✅ FINAL FIXED IMAGE -->
     <img src="${r.image}" 
+         loading="lazy"
+         referrerpolicy="no-referrer"
          onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
 
     <h3>${r.restaurant}</h3>
@@ -214,7 +216,7 @@ async function search(){
   <div class="cards">${cards}</div>`;
 }
 
-// Load history on page load
+// Load history on start
 loadHistory();
 
 </script>
