@@ -67,11 +67,6 @@ button.search {
   background:#1e1e1e;
   padding:10px;
   border-radius:10px;
-  transition:0.3s;
-}
-
-.card:hover {
-  transform:scale(1.03);
 }
 
 .card img {
@@ -81,9 +76,6 @@ button.search {
   border-radius:10px;
 }
 
-.price { color:#00e676; font-weight:bold; }
-.old { text-decoration:line-through; color:gray; margin-left:6px; }
-
 .ai-box {
   margin-top:10px;
   padding:10px;
@@ -91,14 +83,16 @@ button.search {
   border-radius:8px;
 }
 
-.history {
-  margin-top:20px;
-  font-size:14px;
+.loader {
+  margin-top:10px;
+  color:#ccc;
 }
 
-.history div {
-  margin-bottom:5px;
-  cursor:pointer;
+.error {
+  margin-top:10px;
+  background:#ff4d4d;
+  padding:10px;
+  border-radius:6px;
 }
 </style>
 </head>
@@ -112,18 +106,13 @@ button.search {
 
 <div class="main">
 
-<!-- Sidebar -->
 <div class="sidebar">
   <button onclick="newChat()">➕ New Chat</button>
   <button onclick="clearHistory()">🗑 Clear History</button>
 
-  <div class="history">
-    <h4>History</h4>
-    <div id="history"></div>
-  </div>
+  <div id="history"></div>
 </div>
 
-<!-- Main Content -->
 <div class="content">
 
 <div class="search-box">
@@ -139,7 +128,6 @@ button.search {
 
 <script>
 
-// Save history
 function saveHistory(q){
   let h = JSON.parse(localStorage.getItem("history") || "[]");
   h.unshift(q);
@@ -147,31 +135,26 @@ function saveHistory(q){
   loadHistory();
 }
 
-// Load history
 function loadHistory(){
   let h = JSON.parse(localStorage.getItem("history") || "[]");
   document.getElementById("history").innerHTML =
     h.map(x => `<div onclick="repeatSearch('${x}')">${x}</div>`).join("");
 }
 
-// Clear history
 function clearHistory(){
   localStorage.removeItem("history");
   loadHistory();
 }
 
-// New chat
 function newChat(){
   document.getElementById("chat").innerHTML = "";
 }
 
-// Click history
 function repeatSearch(q){
   document.getElementById("query").value = q;
   search();
 }
 
-// MAIN SEARCH
 async function search(){
 
  let query = document.getElementById("query").value;
@@ -179,44 +162,54 @@ async function search(){
 
  saveHistory(query);
 
- let res = await fetch(`https://mera-ai.onrender.com/search?query=${query}`);
- let data = await res.json();
-
- let cards="";
-
- data.results.forEach((r,i)=>{
-
-  cards += `
-  <div class="card">
-
-    <!-- ✅ FINAL FIXED IMAGE -->
-    <img src="${r.image}" 
-         loading="lazy"
-         referrerpolicy="no-referrer"
-         onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
-
-    <h3>${r.restaurant}</h3>
-
-    <p>
-      <span class="price">₹${r.final_price}</span>
-      <span class="old">₹${r.original_price}</span>
-    </p>
-
-    <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
-    <p>${r.platform}</p>
-
-    ${i===0 ? "<b>🔥 Best Choice</b>" : ""}
-
-  </div>`;
- });
-
  document.getElementById("chat").innerHTML += `
-  <div style="margin-top:10px;"><b>You:</b> ${query}</div>
-  <div class="ai-box">🤖 ${data.ai_message}</div>
-  <div class="cards">${cards}</div>`;
+  <div><b>You:</b> ${query}</div>
+  <div class="loader">⏳ Loading results...</div>`;
+
+ try {
+
+  let res = await fetch(`https://mera-ai.onrender.com/search?query=${query}`);
+
+  if (!res.ok) throw new Error("API failed");
+
+  let data = await res.json();
+
+  let cards="";
+
+  data.results.forEach((r,i)=>{
+
+    cards += `
+    <div class="card">
+
+      <img src="${r.image}" 
+           loading="lazy"
+           referrerpolicy="no-referrer"
+           onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
+
+      <h3>${r.restaurant}</h3>
+
+      <p>₹${r.final_price} <span style="text-decoration:line-through;color:gray;">₹${r.original_price}</span></p>
+
+      <p>${r.discount}% OFF | ${r.delivery_time} mins</p>
+      <p>${r.platform}</p>
+
+      ${i===0 ? "<b>🔥 Best Choice</b>" : ""}
+
+    </div>`;
+  });
+
+  document.getElementById("chat").innerHTML += `
+    <div class="ai-box">🤖 ${data.ai_message}</div>
+    <div class="cards">${cards}</div>`;
+
+ } catch (e) {
+
+  document.getElementById("chat").innerHTML += `
+    <div class="error">⚠️ Backend is sleeping or down. Try again in 30 seconds.</div>`;
+ }
+
 }
 
-// Load history on start
 loadHistory();
 
 </script>
