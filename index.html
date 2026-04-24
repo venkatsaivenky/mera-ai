@@ -29,6 +29,7 @@ body { margin:0; font-family:Arial; background:#111; color:white; }
   color:white;
   border:none;
   border-radius:6px;
+  cursor:pointer;
 }
 
 .content { flex:1; padding:20px; }
@@ -43,6 +44,7 @@ input {
   padding:12px;
   border-radius:8px;
   border:none;
+  font-size:16px;
 }
 
 button.search {
@@ -51,6 +53,7 @@ button.search {
   border:none;
   color:white;
   border-radius:8px;
+  cursor:pointer;
 }
 
 .cards {
@@ -64,6 +67,11 @@ button.search {
   background:#1e1e1e;
   padding:10px;
   border-radius:10px;
+  transition:0.3s;
+}
+
+.card:hover {
+  transform:scale(1.03);
 }
 
 .card img {
@@ -73,8 +81,8 @@ button.search {
   border-radius:10px;
 }
 
-.price { color:#00e676; }
-.old { text-decoration:line-through; color:gray; }
+.price { color:#00e676; font-weight:bold; }
+.old { text-decoration:line-through; color:gray; margin-left:6px; }
 
 .ai-box {
   margin-top:10px;
@@ -86,6 +94,11 @@ button.search {
 .history {
   margin-top:20px;
   font-size:14px;
+}
+
+.history div {
+  margin-bottom:5px;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -99,6 +112,7 @@ button.search {
 
 <div class="main">
 
+<!-- Sidebar -->
 <div class="sidebar">
   <button onclick="newChat()">➕ New Chat</button>
   <button onclick="clearHistory()">🗑 Clear History</button>
@@ -109,6 +123,7 @@ button.search {
   </div>
 </div>
 
+<!-- Content -->
 <div class="content">
 
 <div class="search-box">
@@ -124,6 +139,7 @@ button.search {
 
 <script>
 
+// Save search history
 function saveHistory(q){
   let h = JSON.parse(localStorage.getItem("history") || "[]");
   h.unshift(q);
@@ -131,21 +147,31 @@ function saveHistory(q){
   loadHistory();
 }
 
+// Load history
 function loadHistory(){
   let h = JSON.parse(localStorage.getItem("history") || "[]");
   document.getElementById("history").innerHTML =
-    h.map(x => `<div>${x}</div>`).join("");
+    h.map(x => `<div onclick="repeatSearch('${x}')">${x}</div>`).join("");
 }
 
+// Clear history
 function clearHistory(){
   localStorage.removeItem("history");
   loadHistory();
 }
 
+// New chat
 function newChat(){
   document.getElementById("chat").innerHTML = "";
 }
 
+// Repeat search from history
+function repeatSearch(q){
+  document.getElementById("query").value = q;
+  search();
+}
+
+// MAIN SEARCH FUNCTION
 async function search(){
 
  let query = document.getElementById("query").value;
@@ -162,7 +188,9 @@ async function search(){
 
   cards += `
   <div class="card">
-    <img src="${r.image}"
+
+    <!-- ✅ FIXED IMAGE LINE -->
+    <img src="${r.image}" 
          onerror="this.src='https://via.placeholder.com/400x300?text=Food'">
 
     <h3>${r.restaurant}</h3>
@@ -176,15 +204,17 @@ async function search(){
     <p>${r.platform}</p>
 
     ${i===0 ? "<b>🔥 Best Choice</b>" : ""}
+
   </div>`;
  });
 
  document.getElementById("chat").innerHTML += `
-  <div><b>You:</b> ${query}</div>
+  <div style="margin-top:10px;"><b>You:</b> ${query}</div>
   <div class="ai-box">🤖 ${data.ai_message}</div>
   <div class="cards">${cards}</div>`;
 }
 
+// Load history on page load
 loadHistory();
 
 </script>
