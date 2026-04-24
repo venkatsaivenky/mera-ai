@@ -134,6 +134,33 @@ if(!localStorage.getItem("user")){
 }
 document.getElementById("username").innerText = localStorage.getItem("user");
 
+/* SMART IMAGE LOGIC */
+function getFoodImage(query, index){
+  let keywordMap = {
+    "biryani": "chicken biryani indian food",
+    "pizza": "pizza cheese",
+    "burger": "burger fast food",
+    "dosa": "dosa south indian",
+    "idli": "idli sambhar",
+    "cake": "chocolate cake",
+    "waffle": "waffle dessert",
+    "pasta": "italian pasta",
+    "fried rice": "fried rice chinese",
+    "noodles": "noodles chinese food",
+    "sandwich": "sandwich fast food"
+  };
+
+  let keyword = query.toLowerCase();
+
+  for (let key in keywordMap) {
+    if (keyword.includes(key)) {
+      keyword = keywordMap[key];
+    }
+  }
+
+  return `https://source.unsplash.com/400x300/?${keyword}&sig=${index}`;
+}
+
 /* SEARCH */
 async function search(){
 
@@ -142,7 +169,7 @@ async function search(){
 
  saveHistory(query);
 
- // 🔥 CLEAR OLD RESULTS (FIX 1)
+ // ✅ CLEAR OLD RESULTS
  document.getElementById("chat").innerHTML = "";
 
  let res = await fetch(
@@ -151,14 +178,11 @@ async function search(){
 
  let data = await res.json();
 
- console.log(data);
-
  let cards = "";
 
  data.results.forEach((r,i)=>{
 
-  // 🔥 BETTER IMAGE FIX
-  let img = `https://source.unsplash.com/400x300/?${query}`;
+  let img = getFoodImage(query, i);
 
   cards += `
   <div class="card">
@@ -178,8 +202,8 @@ async function search(){
   `;
  });
 
- // 🔥 FIX 2: HANDLE UNDEFINED AI MESSAGE
- let aiText = data.ai_message ? data.ai_message : "Showing best results for you";
+ // ✅ FIX AI MESSAGE
+ let aiText = data.ai_message ? data.ai_message : `Showing best deals for ${query}`;
 
  document.getElementById("chat").innerHTML = `
   <div><b>You:</b> ${query}</div>
