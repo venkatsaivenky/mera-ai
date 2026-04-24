@@ -18,7 +18,7 @@ def home():
     return {"message": "Mera AI working ✅"}
 
 
-# ✅ STABLE IMAGE LINKS (NO UNSPLASH)
+# ✅ RELIABLE IMAGES
 FOOD_IMAGES = {
     "biryani": "https://upload.wikimedia.org/wikipedia/commons/3/35/Chicken_Biryani.jpg",
     "pizza": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Supreme_pizza.jpg",
@@ -32,8 +32,7 @@ def get_image(query):
     for key in FOOD_IMAGES:
         if key in q:
             return FOOD_IMAGES[key]
-
-    return "https://upload.wikimedia.org/wikipedia/commons/6/64/Food_placeholder.png"
+    return "https://via.placeholder.com/400x300?text=Food"
 
 
 @app.get("/search")
@@ -44,7 +43,7 @@ def search(query: str):
     for i in range(8):
         results.append({
             "restaurant": f"{query.title()} Spot {i+1}",
-            "image": get_image(query),  # ✅ ALWAYS WORKS
+            "image": get_image(query),
             "original_price": random.randint(200, 350),
             "final_price": random.randint(120, 250),
             "discount": random.choice([20, 30, 40, 50]),
