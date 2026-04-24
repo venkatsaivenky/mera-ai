@@ -1,7 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import random
+import logging
+from openai import OpenAI
+
+# ✅ Setup logging
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
@@ -13,52 +18,69 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def home():
-    return {"message": "Mera AI running 🚀"}
+# ✅ OpenAI client (safe init)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
-# 🔥 FOOD IMAGE MAP
+# ✅ Food images
 FOOD_IMAGES = {
     "biryani": "https://upload.wikimedia.org/wikipedia/commons/3/35/Chicken_Biryani.jpg",
     "pizza": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Supreme_pizza.jpg",
     "burger": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Cheeseburger.jpg",
     "dosa": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Dosa.jpg",
-    "waffle": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Waffles_with_Strawberries.jpg"
 }
-
-
-# 🔥 FOOD VARIATIONS (AI suggestions)
-FOOD_VARIANTS = {
-    "biryani": ["chicken biryani", "mutton biryani", "veg biryani", "paneer biryani"],
-    "pizza": ["cheese pizza", "farmhouse pizza", "pepperoni pizza", "margherita pizza"],
-    "burger": ["chicken burger", "veg burger", "cheese burger"],
-    "dosa": ["masala dosa", "plain dosa", "rava dosa"],
-}
-
 
 def get_image(query):
+    q = query.lower()
     for key in FOOD_IMAGES:
-        if key in query.lower():
+        if key in q:
             return FOOD_IMAGES[key]
     return "https://via.placeholder.com/400x300?text=Food"
 
 
-# 🔥 AI SCORING
-def score(item):
-    return item["final_price"] * 0.5 + item["delivery_time"] * 0.3 - item["discount"] * 0.2
+# ✅ AI SAFE CALL
+def get_ai_response(query, results):
+    try:
+        prompt = f"""
+User query: {query}
+
+Options:
+{results}
+
+Give a short recommendation:
+- best option
+- why
+- mention price and delivery
+"""
+
+        res = client.chat.completions.create(
+            model="gpt-5-mini",
+            messages=[{"role": "user", "content": prompt}],
+            timeout=5  # ✅ prevents hanging
+        )
+
+        return res.choices[0].message.content
+
+    except Exception as e:
+        logging.error(f"AI error: {e}")
+        return f"Showing best available deals for '{query}'"
+
+
+@app.get("/")
+def home():
+    return {"status": "ok", "message": "Mera AI running 🚀"}
 
 
 @app.get("/search")
 def search(query: str):
 
-    base = query.lower()
-    image = get_image(base)
+    if not query or len(query) < 2:
+        raise HTTPException(status_code=400, detail="Invalid query")
+
+    image = get_image(query)
 
     results = []
 
-    # generate realistic dishes
-    for i in range(10):
+    for i in range(6):
         results.append({
             "restaurant": f"{query.title()} Hub {i+1}",
             "image": image,
@@ -69,19 +91,17 @@ def search(query: str):
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    # AI ranking
-    results = sorted(results, key=score)
+    # ✅ smart ranking
+    results = sorted(results, key=lambda x: x["final_price"] + x["delivery_time"])
 
-    # suggestions
-    suggestions = []
-    for key in FOOD_VARIANTS:
-        if key in base:
-            suggestions = FOOD_VARIANTS[key]
+    # ✅ AI (safe)
+    ai_message = get_ai_response(query, results[:3])
 
     return {
+        "success": True,
+        "query": query,
         "results": results,
-        "ai_message": f"Top smart recommendations for {query}",
-        "suggestions": suggestions
+        "ai_message": ai_message
     }
 
 
