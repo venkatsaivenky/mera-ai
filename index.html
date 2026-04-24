@@ -5,20 +5,20 @@
 
 <style>
 body {margin:0; font-family:Arial; background:#111; color:white;}
+.light {background:#f5f5f5; color:black;}
+
 .header {padding:15px; background:#1e1e1e; display:flex; justify-content:space-between;}
 .main {display:flex;}
-.sidebar {width:250px; background:#000; padding:15px;}
+.sidebar {width:260px; background:#000; padding:15px;}
+.light .sidebar {background:#eee;}
+
+button {width:100%; margin-bottom:10px; padding:10px; border:none; border-radius:6px; background:#ff5a5f; color:white;}
+input {padding:10px; width:70%; border-radius:6px;}
+
 .content {flex:1; padding:20px;}
-
-input, button {
-  padding:10px;
-  border-radius:6px;
-  border:none;
-}
-
-button {background:#ff5a5f; color:white; cursor:pointer;}
-
 .card {background:#1e1e1e; padding:10px; margin:10px; border-radius:10px;}
+.light .card {background:#fff;}
+
 .card img {width:100%; height:150px; object-fit:cover;}
 </style>
 </head>
@@ -33,8 +33,14 @@ button {background:#ff5a5f; color:white; cursor:pointer;}
 <div class="main">
 
 <div class="sidebar">
-  <button onclick="newChat()">+ New Chat</button>
-  <button onclick="loadHistory()">History</button>
+  <button onclick="newThread()">+ New Chat</button>
+  <button onclick="toggleMode()">🌙 Toggle Mode</button>
+  <button onclick="clearHistory()">🗑 Clear History</button>
+
+  <h4>Threads</h4>
+  <div id="threads"></div>
+
+  <h4>History</h4>
   <div id="history"></div>
 </div>
 
@@ -44,7 +50,6 @@ button {background:#ff5a5f; color:white; cursor:pointer;}
   <input id="u" placeholder="username">
   <input id="p" type="password" placeholder="password">
   <button onclick="login()">Login</button>
-  <button onclick="signup()">Signup</button>
 </div>
 
 <div id="app" style="display:none;">
@@ -60,61 +65,75 @@ button {background:#ff5a5f; color:white; cursor:pointer;}
 <script>
 
 let user="";
+let thread="chat1";
+let dark=true;
 
-async function signup(){
-  let u=document.getElementById("u").value;
-  let p=document.getElementById("p").value;
-
-  await fetch("https://mera-ai.onrender.com/signup?username="+u+"&password="+p,{method:"POST"});
-  alert("Signup done");
-}
-
+// LOGIN
 async function login(){
-  let u=document.getElementById("u").value;
-  let p=document.getElementById("p").value;
+ let u=document.getElementById("u").value;
+ let p=document.getElementById("p").value;
 
-  let res = await fetch("https://mera-ai.onrender.com/login?username="+u+"&password="+p,{method:"POST"});
+ let res=await fetch(`https://mera-ai.onrender.com/login?username=${u}&password=${p}`,{method:"POST"});
 
-  if(res.ok){
-    user=u;
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("app").style.display="block";
-    document.getElementById("user").innerHTML="👤 "+u;
-    loadHistory();
-  }else{
-    alert("Login failed");
-  }
+ if(res.ok){
+   user=u;
+   document.getElementById("loginBox").style.display="none";
+   document.getElementById("app").style.display="block";
+   document.getElementById("user").innerHTML="👤 "+u;
+   loadThreads();
+ }
 }
 
+// SEARCH
 async function search(){
-
  let q=document.getElementById("query").value;
 
- let res=await fetch(`https://mera-ai.onrender.com/search?query=${q}&user=${user}`);
+ let res=await fetch(`https://mera-ai.onrender.com/search?query=${q}&user=${user}&thread=${thread}`);
  let data=await res.json();
 
  let html=`<div>${data.ai_message}</div>`;
 
  data.results.forEach(r=>{
-   html+=`
-   <div class="card">
-     <img src="${r.image}">
-     <h3>${r.restaurant}</h3>
-     ₹${r.final_price}
-   </div>`;
+  html+=`
+  <div class="card">
+   <img src="${r.image}" onerror="this.src='https://via.placeholder.com/400x300'">
+   <h3>${r.restaurant}</h3>
+   ₹${r.final_price}
+  </div>`;
  });
 
  document.getElementById("chat").innerHTML=html;
 
  loadHistory();
+ loadThreads();
 }
 
+// THREADS
+function newThread(){
+ thread="chat"+Date.now();
+ document.getElementById("chat").innerHTML="";
+}
+
+async function loadThreads(){
+ let res=await fetch(`https://mera-ai.onrender.com/threads?user=${user}`);
+ let data=await res.json();
+
+ document.getElementById("threads").innerHTML=
+ data.map(t=>`<div onclick="switchThread('${t}')">${t}</div>`).join("");
+}
+
+function switchThread(t){
+ thread=t;
+ loadHistory();
+}
+
+// HISTORY
 async function loadHistory(){
- let res=await fetch(`https://mera-ai.onrender.com/history?user=${user}`);
+ let res=await fetch(`https://mera-ai.onrender.com/history?user=${user}&thread=${thread}`);
  let data=await res.json();
 
  document.getElementById("history").innerHTML=
-  data.map(x=>`<div onclick="repeat('${x}')">${x}</div>`).join("");
+ data.map(x=>`<div onclick="repeat('${x}')">${x}</div>`).join("");
 }
 
 function repeat(q){
@@ -122,8 +141,17 @@ function repeat(q){
  search();
 }
 
-function newChat(){
- document.getElementById("chat").innerHTML="";
+// CLEAR
+async function clearHistory(){
+ await fetch(`https://mera-ai.onrender.com/clear?user=${user}`,{method:"DELETE"});
+ loadHistory();
+ loadThreads();
+}
+
+// DARK MODE
+function toggleMode(){
+ dark=!dark;
+ document.body.classList.toggle("light");
 }
 
 </script>
