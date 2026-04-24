@@ -3,12 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import random
 import logging
-from openai import OpenAI
-
-# ✅ Setup logging
-logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
+
+logging.basicConfig(level=logging.INFO)
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,10 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ OpenAI client (safe init)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# ✅ Food images
+# ✅ SAFE IMAGE MAP
 FOOD_IMAGES = {
     "biryani": "https://upload.wikimedia.org/wikipedia/commons/3/35/Chicken_Biryani.jpg",
     "pizza": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Supreme_pizza.jpg",
@@ -30,44 +25,43 @@ FOOD_IMAGES = {
 }
 
 def get_image(query):
-    q = query.lower()
     for key in FOOD_IMAGES:
-        if key in q:
+        if key in query.lower():
             return FOOD_IMAGES[key]
     return "https://via.placeholder.com/400x300?text=Food"
 
 
-# ✅ AI SAFE CALL
+# ✅ SAFE AI FUNCTION (NO CRASH)
 def get_ai_response(query, results):
+
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        return f"Showing best deals for {query}"
+
     try:
-        prompt = f"""
-User query: {query}
-
-Options:
-{results}
-
-Give a short recommendation:
-- best option
-- why
-- mention price and delivery
-"""
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
 
         res = client.chat.completions.create(
             model="gpt-5-mini",
-            messages=[{"role": "user", "content": prompt}],
-            timeout=5  # ✅ prevents hanging
+            messages=[{
+                "role": "user",
+                "content": f"Suggest best food option for {query} from {results}"
+            }],
+            timeout=5
         )
 
         return res.choices[0].message.content
 
     except Exception as e:
-        logging.error(f"AI error: {e}")
-        return f"Showing best available deals for '{query}'"
+        logging.error(f"AI ERROR: {e}")
+        return f"Showing best deals for {query}"
 
 
 @app.get("/")
 def home():
-    return {"status": "ok", "message": "Mera AI running 🚀"}
+    return {"status": "ok"}
 
 
 @app.get("/search")
@@ -91,15 +85,12 @@ def search(query: str):
             "platform": random.choice(["Swiggy", "Zomato"])
         })
 
-    # ✅ smart ranking
     results = sorted(results, key=lambda x: x["final_price"] + x["delivery_time"])
 
-    # ✅ AI (safe)
     ai_message = get_ai_response(query, results[:3])
 
     return {
         "success": True,
-        "query": query,
         "results": results,
         "ai_message": ai_message
     }
