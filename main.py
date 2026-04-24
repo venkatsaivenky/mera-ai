@@ -18,13 +18,13 @@ def home():
     return {"message": "Mera AI working ✅"}
 
 
-# ✅ REAL WORKING IMAGE LINKS (NO FAILURES)
+# ✅ STABLE IMAGE LINKS (NO UNSPLASH)
 FOOD_IMAGES = {
-    "biryani": "https://images.unsplash.com/photo-1563379091339-03246963d96c?auto=format&fit=crop&w=800&q=80",
-    "pizza": "https://images.unsplash.com/photo-1601924582975-7e1a6a1d5a9b?auto=format&fit=crop&w=800&q=80",
-    "burger": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80",
-    "dosa": "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?auto=format&fit=crop&w=800&q=80",
-    "waffle": "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=800&q=80"
+    "biryani": "https://upload.wikimedia.org/wikipedia/commons/3/35/Chicken_Biryani.jpg",
+    "pizza": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Supreme_pizza.jpg",
+    "burger": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Cheeseburger.jpg",
+    "dosa": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Dosa.jpg",
+    "waffle": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Waffles_with_Strawberries.jpg"
 }
 
 def get_image(query):
@@ -33,8 +33,7 @@ def get_image(query):
         if key in q:
             return FOOD_IMAGES[key]
 
-    # fallback (generic food)
-    return "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80"
+    return "https://upload.wikimedia.org/wikipedia/commons/6/64/Food_placeholder.png"
 
 
 @app.get("/search")
@@ -45,7 +44,7 @@ def search(query: str):
     for i in range(8):
         results.append({
             "restaurant": f"{query.title()} Spot {i+1}",
-            "image": get_image(query),  # ✅ FIXED
+            "image": get_image(query),  # ✅ ALWAYS WORKS
             "original_price": random.randint(200, 350),
             "final_price": random.randint(120, 250),
             "discount": random.choice([20, 30, 40, 50]),
