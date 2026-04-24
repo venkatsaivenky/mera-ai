@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import json
 import os
 import random
 
@@ -22,53 +21,31 @@ def home():
 @app.get("/search")
 def search(query: str):
 
-    # ✅ SAFE FILE PATH (WORKS ON RENDER)
-    file_path = os.path.join(os.path.dirname(__file__), "data.json")
+    results = []
 
-    try:
-        with open(file_path) as f:
-            data = json.load(f)
-        print("✅ DATA LOADED:", len(data))
-    except Exception as e:
-        print("❌ ERROR LOADING DATA:", e)
+    for i in range(8):
+        results.append({
+            "restaurant": f"{query.title()} Spot {i+1}",
 
-        # 🔥 FALLBACK DATA (NEVER EMPTY UI AGAIN)
-        data = [
-            {
-                "restaurant": f"{query.title()} Spot {i+1}",
-                "image": "https://via.placeholder.com/400x300?text=Food",
-                "original_price": random.randint(200, 350),
-                "final_price": random.randint(120, 250),
-                "discount": random.choice([20, 30, 40]),
-                "delivery_time": random.randint(20, 40),
-                "platform": random.choice(["Swiggy", "Zomato"])
-            }
-            for i in range(8)
-        ]
+            # ✅ ALWAYS WORKING IMAGE (BASED ON QUERY)
+            "image": f"https://source.unsplash.com/400x300/?{query},food",
 
-    # ✅ FILTER RESULTS
-    filtered = [
-        item for item in data
-        if query.lower() in item["restaurant"].lower()
-    ]
+            "original_price": random.randint(200, 350),
+            "final_price": random.randint(120, 250),
+            "discount": random.choice([20, 30, 40, 50]),
+            "delivery_time": random.randint(20, 45),
+            "platform": random.choice(["Swiggy", "Zomato"])
+        })
 
-    # 🔥 IF NO MATCH → SHOW ALL
-    if not filtered:
-        filtered = data
-
-    # 🧠 AI SORT (PRICE + DELIVERY)
-    filtered = sorted(
-        filtered,
-        key=lambda x: x.get("final_price", 999) + x.get("delivery_time", 999)
-    )
+    # 🧠 sort by best deal
+    results = sorted(results, key=lambda x: x["final_price"] + x["delivery_time"])
 
     return {
-        "results": filtered,
-        "ai_message": f"Top results for {query}"
+        "results": results,
+        "ai_message": f"Showing best deals for {query}"
     }
 
 
-# ✅ REQUIRED FOR RENDER
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 10000))
